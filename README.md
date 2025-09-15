@@ -4,14 +4,14 @@ Main features so far: Planner, Budget Calculator, Fitness Tracker
 Tech Stack: Python(Flask/Django) + SQL + React
 
 
-## Planner
+# Planner
 ### Features 
 	• Task Management
 	• Reminders List
 	• Dashboard insights 
 	• Calendar synced with tasks and reminders.
 	
-## Task Management
+### Task Management
 	• Add/Edit/Update/Delete tasks
 	• View upcoming and completed tasks
 	• Organise tasks by categories
@@ -19,12 +19,12 @@ Tech Stack: Python(Flask/Django) + SQL + React
 	• Sort tasks. (progress, priority, due date)
 	• Search tasks
 
-## Reminders
+### Reminders
 	• Add/Edit/Update/Delete reminders
 	• Be able to set recurring reminders (daily, monthly, yearly)
 	• Email/Notifications for reminders 
 
-## Dashboard insights 
+### Dashboard insights 
 	• Display the current day tasks and reminders
 	• Access to task management, calendar, or reminders
 
