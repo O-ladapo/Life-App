@@ -4,4 +4,6 @@ Main features so far: Planner, Budget Calculator, Fitness Tracker
 Tech Stack: Python(Flask/Django) + SOL + React
 
 
+# Planner
+
 
