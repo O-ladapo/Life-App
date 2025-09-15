@@ -26,7 +26,14 @@ Tech Stack: Python(Flask/Django) + SQL + React
 ### Reminders
 - Add/Edit/Update/Delete reminders
 - Be able to set recurring reminders (daily, monthly, yearly)
-- Email/Notifications for reminders 
+- Email/Notifications for reminders
+
+### Calendar
+
+- Display reminders and tasks in the calendar
+- Search for tasks
+- Be able to change the calendar view (Weeks, Months, Years)
+
 
 
 
