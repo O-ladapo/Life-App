@@ -9,7 +9,11 @@ Tech Stack: Python(Flask/Django) + SQL + React
 - Task Management
 - Reminders List
 - Dashboard insights 
-- Calendar synced with tasks and reminders.
+- Calendar synced with tasks and reminders
+
+### Dashboard insights 
+- Display the current day tasks and reminders
+- Access to task management, calendar, or reminders
 	
 ### Task Management
 - Add/Edit/Update/Delete tasks
@@ -24,8 +28,5 @@ Tech Stack: Python(Flask/Django) + SQL + React
 - Be able to set recurring reminders (daily, monthly, yearly)
 - Email/Notifications for reminders 
 
-### Dashboard insights 
-- Display the current day tasks and reminders
-- Access to task management, calendar, or reminders
 
 
