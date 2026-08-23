@@ -1,3 +1,7 @@
+:root{
+    --accent: #4B4B4B;
+}
+
 .login_page {
   display: flex;
   min-height: 100vh;
@@ -37,13 +41,39 @@
     color: white;
     padding: 10px 0;
     font-size: 20px;
-    margin-top: 40px;
+    margin-top: 70px;
     gap: 10px;
 }
 
 .input_section input:focus {
     outline: none;
     border-bottom-color: white;
+}
+
+.login_button {
+    width: 10%;
+    border: 1px solid #FFFF;
+    padding: 10px 0;
+    margin-top: 70px;
+    text-align: center;
+    background: transparent;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.login_button:hover {
+    background-color: var(--accent);
+}
+
+.sign_up_link {
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.sign_up_link:hover {
+  color: var(--accent);
 }
 
 h1 {
@@ -55,5 +85,12 @@ h2 {
     font-size: 20px;
     font-weight: normal;
 }
+
+h3 {
+    margin-top: 50px;
+    font-size: 20px;
+    font-weight: normal;
+}
+
 
 
