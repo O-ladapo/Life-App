@@ -1,0 +1,86 @@
+:root{
+    --accent: #4B4B4B;
+}
+
+.login_page {
+  display: flex;
+  min-height: 100vh;
+}
+
+.left_section {
+    position: relative;
+    min-width: 0;
+    flex: 1;
+    background-color: #0A002D;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+}
+
+.right_section {
+    flex: 1;
+    min-width: 0;
+    background-color: #1E1E1E;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; 
+    align-items: stretch;
+}
+
+.right_content {
+    padding-left: 50px;
+    padding-top: 200px;
+}
+
+.input_section input {
+    width: 80%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #FFFF;
+    color: white;
+    padding: 10px 0;
+    font-size: 20px;
+    margin-top: 70px;
+    gap: 10px;
+}
+
+.input_section input:focus {
+    outline: none;
+    border-bottom-color: white;
+}
+
+.create_account_button {
+    width: 20%;
+    border: 1px solid #FFFF;
+    padding: 10px 0;
+    margin-top: 70px;
+    text-align: center;
+    background: transparent;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.create_account_button:hover {
+    background-color: var(--accent);
+}
+
+h1 {
+    font-size: 36px;
+    font-weight: bold;
+}
+
+h2 {
+    font-size: 20px;
+    font-weight: normal;
+}
+
+h3 {
+    margin-top: 50px;
+    font-size: 20px;
+    font-weight: normal;
+}
+
+
+
