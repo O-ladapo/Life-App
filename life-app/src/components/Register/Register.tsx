@@ -1,6 +1,7 @@
 import styles from './Register.module.css'
 import infinityImg from '../assets/infinity.png'
 import {useForm} from 'react-hook-form'
+import { useNavigate } from 'react-router-dom';
 
 type RegisterFormData = {
     username: string;
@@ -12,9 +13,11 @@ type RegisterFormData = {
 
 function Register() {
     const {register, handleSubmit, watch, formState: {errors}} = useForm<RegisterFormData>();
+    const navigate = useNavigate();
 
     function handleRegister(data: RegisterFormData) {
         alert("Account created successfully!" + data.username + " " + data.email);
+        navigate('/login');
     }
 
     return (
@@ -67,12 +70,10 @@ function Register() {
                             /> 
                             {errors.confirmPassword && <p className={styles.error_text}>{errors.confirmPassword.message}</p>}
                         </div>
-                        <button className={styles.create_account_button} type="submit">Create Account</button>
+                        <button className={styles.create_account_button} type="submit"> Create Account </button>
                     </form>
                 </div>
             </div>
-        
-          
         </div>
     )
 }

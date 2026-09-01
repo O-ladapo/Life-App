@@ -1,12 +1,20 @@
 import { useState } from 'react';
 import infinityImg from '../assets/infinity.png'
 import styles from './Login.module.css'
-function Login() {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+import {useForm} from 'react-hook-form'
+import { Link } from 'react-router-dom';
 
-    function handleLogin(event: React.FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+type LoginFormData = {
+    username: string;
+    password: string;
+}
+
+function Login() {
+    const {register, handleSubmit, formState: {errors}} = useForm<LoginFormData>();
+    
+
+    function handleLogin(data: LoginFormData) {
+        alert("Logged in successfully!" + data.username);
     }
 
     return (
@@ -20,27 +28,29 @@ function Login() {
                       <h1>Login</h1>
                       <h2>Welcome back! Please sign in to continue.</h2>
 
-                    <form onSubmit = {handleLogin}>
+                    <form onSubmit = {handleSubmit(handleLogin)}>
                         <div className={styles.input_section}>
                             <input 
                                 placeholder="Username" 
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                {...register("username", {required: "Username is required"})}
                             /> 
+                            {errors.username && <p className={styles.error_text}>{errors.username.message} </p>}
+
                             <input 
                                 type="password"
                                 placeholder="Password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                {...register("password", {required: "Password is required"})}
                             /> 
+                            {errors.password && <p className={styles.error_text}>{errors.password.message}</p>}
+
                         </div>
+                        <button className={styles.login_button} type="submit">Login</button>
                     </form>
-                    <button className={styles.login_button} type="submit">Login</button>
                     <h3>
                         Don't have an account?{" "}
-                        <span className={styles.sign_up_link}>
+                        <Link to= '/register' className={styles.sign_up_link}>
                             Sign Up
-                        </span>
+                        </Link>
                     </h3>
                     <h4>
                         <span className={styles.forgot_password}>
