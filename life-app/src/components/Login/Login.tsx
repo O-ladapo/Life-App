@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import infinityImg from '../assets/infinity.png'
-import './Login.css'
+import styles from './Login.module.css'
 function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -10,18 +10,18 @@ function Login() {
     }
 
     return (
-        <div className="login_page">
-            <div className="left_section">
+        <div className={styles.login_page}>
+            <div className={styles.left_section}>
                 <img src={infinityImg} width="221" height="134"/>
                 <h1>Life App by Oladapo</h1>
             </div>
-            <div className="right_section">
-                <div className="right_content">
+            <div className={styles.right_section}>
+                <div className={styles.right_content}>
                       <h1>Login</h1>
                       <h2>Welcome back! Please sign in to continue.</h2>
 
                     <form onSubmit = {handleLogin}>
-                        <div className="input_section">
+                        <div className={styles.input_section}>
                             <input 
                                 placeholder="Username" 
                                 value={username}
@@ -35,15 +35,15 @@ function Login() {
                             /> 
                         </div>
                     </form>
-                    <button className="login_button" type="submit">Login</button>
+                    <button className={styles.login_button} type="submit">Login</button>
                     <h3>
                         Don't have an account?{" "}
-                        <span className="sign_up_link">
+                        <span className={styles.sign_up_link}>
                             Sign Up
                         </span>
                     </h3>
                     <h4>
-                        <span className="forgot_password">
+                        <span className={styles.forgot_password}>
                             Forgot Password?
                         </span>
                     </h4>

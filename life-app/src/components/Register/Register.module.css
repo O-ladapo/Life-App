@@ -2,7 +2,7 @@
     --accent: #4B4B4B;
 }
 
-.login_page {
+.register_page {
   display: flex;
   min-height: 100vh;
 }
@@ -66,21 +66,24 @@
     background-color: var(--accent);
 }
 
-h1 {
+.right_content h1 {
     font-size: 36px;
     font-weight: bold;
 }
 
-h2 {
+.right_content h2 {
     font-size: 20px;
     font-weight: normal;
 }
 
-h3 {
+.right_content h3 {
     margin-top: 50px;
     font-size: 20px;
     font-weight: normal;
 }
 
+.error_text {
+    color: red;
+}
 
 
