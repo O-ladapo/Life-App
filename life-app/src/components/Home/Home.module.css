@@ -1,0 +1,47 @@
+:root{
+    --accent: #4B4B4B;
+}
+
+.home_page {
+    display: flex;
+    min-height: 100vh;
+}
+
+.left_section {
+    position: relative;
+    min-width: 0;
+    flex: 1;
+    background-color: #0A002D;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+}
+
+.right_section {
+    flex: 1;
+    min-width: 0;
+    background-color: #1E1E1E;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+}
+
+.right_content {
+    padding-left: 50px;
+    padding-top: 20px;
+}
+
+
+.right_content h1 {
+    font-size: 36px;
+    font-weight: bold;
+}
+
+.right_content h2 {
+    font-size: 72px;
+    font-weight: bold;
+}
+
+
