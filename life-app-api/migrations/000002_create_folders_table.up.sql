@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS folders(
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    type VARCHAR(20) NOT NULL CHECK (type IN ("task", "reminder")),
+    created_at TIMESTAMP DEFAULT NOW()
+)

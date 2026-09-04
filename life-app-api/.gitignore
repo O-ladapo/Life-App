@@ -1,0 +1,24 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Logs
+logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Build output
+/bin/
+/planner-api
+
+# IDE
+.vscode/
+.idea/
