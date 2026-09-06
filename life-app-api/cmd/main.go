@@ -3,6 +3,7 @@ package main
 import (
 	"life_app_api/internal/config"
 	"life_app_api/internal/database"
+	"life_app_api/internal/handlers"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,9 @@ func main() {
 			"database": "connected",
 		})
 	})
+
+	router.POST("/items", handlers.CreateItemHandler(pool))
+	router.POST("/folders", handlers.CreateFolderHandler(pool))
 
 	router.Run(":" + cfg.Port)
 }
