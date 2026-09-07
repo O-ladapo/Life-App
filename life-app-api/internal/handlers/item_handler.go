@@ -3,9 +3,11 @@ package handlers
 import (
 	"life_app_api/internal/repository"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -42,6 +44,7 @@ func CreateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			Description:          input.Description,
 			Priority:             priority,
 			IsRecurring:          input.IsRecurring,
+			Completed:            input.Completed,
 			RecurrenceRule:       input.RecurrenceRule,
 			RecurrenceRuleCustom: input.RecurrenceRuleCustom,
 			StartAt:              input.StartAt,
@@ -54,5 +57,42 @@ func CreateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusCreated, item)
+	}
+}
+
+func GetAllItemsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		items, err := repository.GetAllItems(pool)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, items)
+	}
+}
+
+func GetItemByIDHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID"})
+			return
+		}
+
+		item, err := repository.GetItemByID(pool, id)
+
+		if err != nil{
+			if err == pgx.ErrNoRows {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+
+		c.JSON(http.StatusOK, item)
 	}
 }

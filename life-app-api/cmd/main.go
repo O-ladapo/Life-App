@@ -34,6 +34,10 @@ func main() {
 
 	router.POST("/items", handlers.CreateItemHandler(pool))
 	router.POST("/folders", handlers.CreateFolderHandler(pool))
+	router.GET("/items", handlers.GetAllItemsHandler(pool))
+	router.GET("/items/:id",handlers.GetItemByIDHandler(pool))
+	router.GET("/folders", handlers.GetAllFoldersHandler(pool))
+	router.GET("/folders/:id", handlers.GetFolderByIDHandler(pool))
 
 	router.Run(":" + cfg.Port)
 }
