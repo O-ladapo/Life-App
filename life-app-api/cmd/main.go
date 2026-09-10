@@ -26,8 +26,8 @@ func main() {
 	router.SetTrustedProxies(nil)
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"message": "life-app API is running!",
-			"status":  "success",
+			"message":  "life-app API is running!",
+			"status":   "success",
 			"database": "connected",
 		})
 	})
@@ -35,9 +35,13 @@ func main() {
 	router.POST("/items", handlers.CreateItemHandler(pool))
 	router.POST("/folders", handlers.CreateFolderHandler(pool))
 	router.GET("/items", handlers.GetAllItemsHandler(pool))
-	router.GET("/items/:id",handlers.GetItemByIDHandler(pool))
+	router.GET("/items/:id", handlers.GetItemByIDHandler(pool))
 	router.GET("/folders", handlers.GetAllFoldersHandler(pool))
 	router.GET("/folders/:id", handlers.GetFolderByIDHandler(pool))
+	router.PUT("/items/:id", handlers.UpdateItemHandler(pool))
+	router.PUT("/folders/:id", handlers.UpdateFolderHandler(pool))
+	router.DELETE("/items/:id", handlers.DeleteItemHandler(pool))
+	router.DELETE("/folders/:id", handlers.DeleteFolderHandler(pool))
 
 	router.Run(":" + cfg.Port)
 }
