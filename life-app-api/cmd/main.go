@@ -43,5 +43,8 @@ func main() {
 	router.DELETE("/items/:id", handlers.DeleteItemHandler(pool))
 	router.DELETE("/folders/:id", handlers.DeleteFolderHandler(pool))
 
+	router.POST("/auth/register", handlers.CreateUserHandler(pool))
+	router.POST("/auth/login", handlers.LoginHandler(pool, cfg))
+
 	router.Run(":" + cfg.Port)
 }
