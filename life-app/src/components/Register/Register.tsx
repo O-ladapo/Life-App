@@ -2,6 +2,8 @@ import styles from './Register.module.css'
 import infinityImg from '../assets/infinity.png'
 import {useForm} from 'react-hook-form'
 import { useNavigate } from 'react-router-dom';
+import { registerUser } from "../../api/auth";
+import { useState } from 'react';
 
 type RegisterFormData = {
     username: string;
@@ -13,11 +15,24 @@ type RegisterFormData = {
 
 function Register() {
     const {register, handleSubmit, watch, formState: {errors}} = useForm<RegisterFormData>();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
     const navigate = useNavigate();
 
-    function handleRegister(data: RegisterFormData) {
-        alert("Account created successfully!" + data.username + " " + data.email);
-        navigate('/login');
+    async function handleRegister(data: RegisterFormData) {
+        setErrorMessage(null);
+        try {
+            await registerUser({
+                username: data.username,
+                email: data.email,
+                password: data.password
+            });
+        setSuccessMessage("Account created! Redirecting to login...");
+        setTimeout(() => navigate('/'), 2000);
+        } catch (err) {
+            setErrorMessage(err instanceof Error ? err.message : "Registration failed");
+        }
     }
 
     return (
@@ -66,6 +81,10 @@ function Register() {
                             /> 
                             {errors.confirmPassword && <p className={styles.error_text}>{errors.confirmPassword.message}</p>}
                         </div>
+                    
+                        {errorMessage && <p className={styles.error_text}>{errorMessage}</p>}
+                        {successMessage && <p className={styles.success_text}>{successMessage}</p>}
+
                         <button className={styles.create_account_button} type="submit"> Create Account </button>
                     </form>
                 </div>

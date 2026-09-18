@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import infinityImg from '../assets/infinity.png'
 import styles from './Login.module.css'
 import {useForm} from 'react-hook-form'
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { loginUser } from '../../api/auth';
 
 type LoginFormData = {
     username: string;
@@ -10,11 +13,24 @@ type LoginFormData = {
 
 function Login() {
     const {register, handleSubmit, formState: {errors}} = useForm<LoginFormData>();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const navigate = useNavigate();
     
 
-    function handleLogin(data: LoginFormData) {
-        alert("Logged in successfully!" + data.username);
+    async function handleLogin(data: LoginFormData) {
+        setErrorMessage(null);
+        try {
+            const response = await loginUser({
+                username: data.username,
+                password: data.password
+            });
+        localStorage.setItem("token", response.token);
+        navigate('/home');
+        } catch (err) {
+            setErrorMessage(err instanceof Error ? err.message : "Login failed");
+        }
     }
+
 
     return (
         <div className={styles.login_page}>
@@ -43,6 +59,9 @@ function Login() {
                             {errors.password && <p className={styles.error_text}>{errors.password.message}</p>}
 
                         </div>
+
+                        {errorMessage && <p className={styles.error_text}>{errorMessage}</p>}
+
                         <button className={styles.login_button} type="submit">Login</button>
                     </form>
                     <h3>

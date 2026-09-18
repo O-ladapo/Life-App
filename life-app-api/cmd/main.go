@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/cors"
 )
 
 func main() {
@@ -25,13 +26,13 @@ func main() {
 
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message":  "life-app API is running!",
-			"status":   "success",
-			"database": "connected",
-		})
-	})
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}))
 
 	router.POST("/auth/register", handlers.CreateUserHandler(pool))
 	router.POST("/auth/login", handlers.LoginHandler(pool, cfg))
