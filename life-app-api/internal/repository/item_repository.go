@@ -165,7 +165,7 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID strin
 		SET %s
 		WHERE id = $%d AND user_id = $%d
 		RETURNING id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id`,
-		strings.Join(setClauses, ", "), argPos)
+		strings.Join(setClauses, ", "), argPos, argPos+1)
 	args = append(args, id, userID)
 
 	var item models.Item
