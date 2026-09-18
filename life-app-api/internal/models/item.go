@@ -17,4 +17,5 @@ type Item struct {
 	EndAt                *time.Time `json:"end_at" db:"end_at"`
 	EmailReminder        bool       `json:"email_reminder" db:"email_reminder"`
 	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	UserID               string     `json:"user_id" db:"user_id"`
 }

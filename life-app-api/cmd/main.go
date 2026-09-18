@@ -1,6 +1,7 @@
 package main
 
 import (
+	"life_app_api/internal/auth"
 	"life_app_api/internal/config"
 	"life_app_api/internal/database"
 	"life_app_api/internal/handlers"
@@ -32,19 +33,28 @@ func main() {
 		})
 	})
 
-	router.POST("/items", handlers.CreateItemHandler(pool))
-	router.POST("/folders", handlers.CreateFolderHandler(pool))
-	router.GET("/items", handlers.GetAllItemsHandler(pool))
-	router.GET("/items/:id", handlers.GetItemByIDHandler(pool))
-	router.GET("/folders", handlers.GetAllFoldersHandler(pool))
-	router.GET("/folders/:id", handlers.GetFolderByIDHandler(pool))
-	router.PUT("/items/:id", handlers.UpdateItemHandler(pool))
-	router.PUT("/folders/:id", handlers.UpdateFolderHandler(pool))
-	router.DELETE("/items/:id", handlers.DeleteItemHandler(pool))
-	router.DELETE("/folders/:id", handlers.DeleteFolderHandler(pool))
-
 	router.POST("/auth/register", handlers.CreateUserHandler(pool))
 	router.POST("/auth/login", handlers.LoginHandler(pool, cfg))
+
+	protectedItem := router.Group("/items")
+	protectedItem.Use(auth.AuthMiddleWare(cfg))
+	protectedFolder := router.Group("/folders")
+	protectedFolder.Use(auth.AuthMiddleWare(cfg))
+
+	protectedItem.POST("", handlers.CreateItemHandler(pool))
+	protectedItem.GET("", handlers.GetAllItemsHandler(pool))
+	protectedItem.GET("/:id", handlers.GetItemByIDHandler(pool))
+	protectedItem.PUT("/:id", handlers.UpdateItemHandler(pool))
+	protectedItem.DELETE("/:id", handlers.DeleteItemHandler(pool))
+
+	protectedFolder.POST("", handlers.CreateFolderHandler(pool))
+	protectedFolder.GET("", handlers.GetAllFoldersHandler(pool))
+	protectedFolder.GET("/:id", handlers.GetFolderByIDHandler(pool))
+	protectedFolder.PUT("/:id", handlers.UpdateFolderHandler(pool))
+	protectedFolder.DELETE("/:id", handlers.DeleteFolderHandler(pool))
+
+	// Middleware test route
+	router.GET("/protected-test", auth.AuthMiddleWare(cfg), handlers.TestProtectedHandler())
 
 	router.Run(":" + cfg.Port)
 }

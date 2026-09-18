@@ -21,13 +21,21 @@ type UpdateFolderInput struct {
 
 func CreateFolderHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+		
 		var input CreateFolderInput
 		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		folder, err := repository.CreateFolder(pool, input.Title, input.Type)
+		folder, err := repository.CreateFolder(pool, input.Title, input.Type, userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -39,7 +47,15 @@ func CreateFolderHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func GetAllFoldersHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		folders, err := repository.GetAllFolders(pool)
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+		
+		folders, err := repository.GetAllFolders(pool, userID)
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -52,6 +68,14 @@ func GetAllFoldersHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func GetFolderByIDHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+		
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -59,7 +83,7 @@ func GetFolderByIDHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		folder, err := repository.GetFolderByID(pool, id)
+		folder, err := repository.GetFolderByID(pool, id, userID)
 
 		if err != nil {
 			if err == pgx.ErrNoRows {
@@ -76,6 +100,14 @@ func GetFolderByIDHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func UpdateFolderHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+		
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -89,7 +121,7 @@ func UpdateFolderHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		folder, err := repository.UpdateFolder(pool, id, input.Title)
+		folder, err := repository.UpdateFolder(pool, id, input.Title, userID)
 
 		if err != nil {
 			if err == pgx.ErrNoRows {
@@ -105,6 +137,14 @@ func UpdateFolderHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func DeleteFolderHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+		
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -112,7 +152,7 @@ func DeleteFolderHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		err = repository.DeleteFolder(pool, id)
+		err = repository.DeleteFolder(pool, id, userID)
 
 		if err != nil {
 			if err.Error() == "Folder with id "+idStr+" not found" {

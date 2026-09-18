@@ -38,7 +38,7 @@ type UpdateItemOptions struct {
 	EmailReminder        *bool
 }
 
-func CreateItem(pool *pgxpool.Pool, title string, itemType string, opts CreateItemOptions) (*models.Item, error) {
+func CreateItem(pool *pgxpool.Pool, title string, itemType string, opts CreateItemOptions, userID string) (*models.Item, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -49,11 +49,11 @@ func CreateItem(pool *pgxpool.Pool, title string, itemType string, opts CreateIt
 
 	var item models.Item
 	err := pool.QueryRow(ctx, `
-		INSERT INTO items (folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-		RETURNING id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at`,
-		opts.FolderID, title, itemType, opts.Description, priority, opts.Completed, opts.IsRecurring, opts.RecurrenceRule, opts.RecurrenceRuleCustom, opts.StartAt, opts.EndAt, opts.EmailReminder,
-	).Scan(&item.ID, &item.FolderID, &item.Title, &item.Type, &item.Description, &item.Priority, &item.Completed, &item.IsRecurring, &item.RecurrenceRule, &item.RecurrenceRuleCustom, &item.StartAt, &item.EndAt, &item.EmailReminder, &item.CreatedAt)
+		INSERT INTO items (folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		RETURNING id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id`,
+		opts.FolderID, title, itemType, opts.Description, priority, opts.Completed, opts.IsRecurring, opts.RecurrenceRule, opts.RecurrenceRuleCustom, opts.StartAt, opts.EndAt, opts.EmailReminder, userID,
+	).Scan(&item.ID, &item.FolderID, &item.Title, &item.Type, &item.Description, &item.Priority, &item.Completed, &item.IsRecurring, &item.RecurrenceRule, &item.RecurrenceRuleCustom, &item.StartAt, &item.EndAt, &item.EmailReminder, &item.CreatedAt, &item.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,14 +61,15 @@ func CreateItem(pool *pgxpool.Pool, title string, itemType string, opts CreateIt
 	return &item, nil
 }
 
-func GetAllItems(pool *pgxpool.Pool) ([]models.Item, error) {
+func GetAllItems(pool *pgxpool.Pool, userID string) ([]models.Item, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	rows, err := pool.Query(ctx, `
-		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
 		FROM items
-		ORDER BY created_at`)
+		WHERE user_id = $1
+		ORDER BY created_at`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +79,7 @@ func GetAllItems(pool *pgxpool.Pool) ([]models.Item, error) {
 	for rows.Next() {
 		var item models.Item
 		err = rows.Scan(&item.ID, &item.FolderID, &item.Title, &item.Type, &item.Description, &item.Priority, &item.Completed,
-			&item.IsRecurring, &item.RecurrenceRule, &item.RecurrenceRuleCustom, &item.StartAt, &item.EndAt, &item.EmailReminder, &item.CreatedAt)
+			&item.IsRecurring, &item.RecurrenceRule, &item.RecurrenceRuleCustom, &item.StartAt, &item.EndAt, &item.EmailReminder, &item.CreatedAt, &item.UserID)
 		if err != nil {
 			return nil, err
 		}
@@ -91,23 +92,23 @@ func GetAllItems(pool *pgxpool.Pool) ([]models.Item, error) {
 	return items, nil
 }
 
-func GetItemByID(pool *pgxpool.Pool, id int) (*models.Item, error) {
+func GetItemByID(pool *pgxpool.Pool, id int, userID string) (*models.Item, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	var item models.Item
 	err := pool.QueryRow(ctx, `
-		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
 		FROM items
-		WHERE id = $1`, id).Scan(&item.ID, &item.FolderID, &item.Title, &item.Type, &item.Description, &item.Priority, &item.Completed,
-		&item.IsRecurring, &item.RecurrenceRule, &item.RecurrenceRuleCustom, &item.StartAt, &item.EndAt, &item.EmailReminder, &item.CreatedAt)
+		WHERE id = $1 AND user_id = $2`, id, userID).Scan(&item.ID, &item.FolderID, &item.Title, &item.Type, &item.Description, &item.Priority, &item.Completed,
+		&item.IsRecurring, &item.RecurrenceRule, &item.RecurrenceRuleCustom, &item.StartAt, &item.EndAt, &item.EmailReminder, &item.CreatedAt, &item.UserID)
 	if err != nil {
 		return nil, err
 	}
 	return &item, nil
 }
 
-func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions) (*models.Item, error) {
+func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID string) (*models.Item, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -162,16 +163,16 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions) (*models.Ite
 	query := fmt.Sprintf(`
 		UPDATE items
 		SET %s
-		WHERE id = $%d
-		RETURNING id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at`,
+		WHERE id = $%d AND user_id = $%d
+		RETURNING id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id`,
 		strings.Join(setClauses, ", "), argPos)
-	args = append(args, id)
+	args = append(args, id, userID)
 
 	var item models.Item
 	err := pool.QueryRow(ctx, query, args...).Scan(
 		&item.ID, &item.FolderID, &item.Title, &item.Type, &item.Description, &item.Priority,
 		&item.Completed, &item.IsRecurring, &item.RecurrenceRule, &item.RecurrenceRuleCustom,
-		&item.StartAt, &item.EndAt, &item.EmailReminder, &item.CreatedAt,
+		&item.StartAt, &item.EndAt, &item.EmailReminder, &item.CreatedAt, &item.UserID,
 	)
 	if err != nil {
 		return nil, err
@@ -180,13 +181,13 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions) (*models.Ite
 	return &item, nil
 }
 
-func DeleteItem(pool *pgxpool.Pool, id int) error {
+func DeleteItem(pool *pgxpool.Pool, id int, userID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	commandTag, err := pool.Exec(ctx, `
 	DELETE FROM items
-	WHERE id = $1`, id)
+	WHERE id = $1 AND user_id = $2`, id, userID)
 
 	if err != nil {
 		return err

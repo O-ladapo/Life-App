@@ -42,6 +42,14 @@ type UpdateItemInput struct {
 
 func CreateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
 		var input CreateItemInput
 		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -64,7 +72,7 @@ func CreateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			StartAt:              input.StartAt,
 			EndAt:                input.EndAt,
 			EmailReminder:        input.EmailReminder,
-		})
+		}, userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -76,7 +84,15 @@ func CreateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func GetAllItemsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		items, err := repository.GetAllItems(pool)
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+		
+		items, err := repository.GetAllItems(pool, userID)
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -89,6 +105,14 @@ func GetAllItemsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func GetItemByIDHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -96,7 +120,7 @@ func GetItemByIDHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		item, err := repository.GetItemByID(pool, id)
+		item, err := repository.GetItemByID(pool, id, userID)
 
 		if err != nil {
 			if err == pgx.ErrNoRows {
@@ -114,6 +138,14 @@ func GetItemByIDHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func UpdateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -139,7 +171,7 @@ func UpdateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			StartAt:              input.StartAt,
 			EndAt:                input.EndAt,
 			EmailReminder:        input.EmailReminder,
-		})
+		}, userID)
 		if err != nil {
 			if err == pgx.ErrNoRows {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
@@ -155,6 +187,14 @@ func UpdateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func DeleteItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -162,7 +202,7 @@ func DeleteItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		err = repository.DeleteItem(pool, id)
+		err = repository.DeleteItem(pool, id, userID)
 
 		if err != nil {
 			if err.Error() == "Item with id "+idStr+" not found" {

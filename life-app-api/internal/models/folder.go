@@ -7,4 +7,5 @@ type Folder struct {
 	Title     string    `json:"title" db:"title"`
 	Type      string    `json:"type" db:"type"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UserID    string    `json:"user_id" db:"user_id"`
 }

@@ -1,0 +1,7 @@
+ALTER TABLE items DROP CONSTRAINT IF EXISTS fk_items_user;
+
+ALTER TABLE items DROP COLUMN IF EXISTS user_id;
+
+ALTER TABLE folders DROP CONSTRAINT IF EXISTS fk_folders_user;
+
+ALTER TABLE folders DROP COLUMN IF EXISTS user_id;
