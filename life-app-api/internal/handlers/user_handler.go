@@ -38,7 +38,11 @@ func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		hasedPassword, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
+		if len(registerRequest.Password) < 4 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Password must be at least 4 characters long"})
+		}
+
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password " + err.Error()})
 			return
@@ -47,7 +51,7 @@ func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		user := &models.User{
 			Username: registerRequest.Username,
 			Email:    registerRequest.Email,
-			Password: string(hasedPassword),
+			Password: string(hashedPassword),
 		}
 
 		createdUser, err := repository.CreateUser(pool, user)

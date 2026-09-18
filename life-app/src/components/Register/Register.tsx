@@ -52,10 +52,6 @@ function Register() {
                                     minLength: {
                                         value: 4,
                                         message: "Password must be at least 4 characters long"
-                                    },
-                                    maxLength: {
-                                        value: 12,
-                                        message: "Password cannot exceed 12 characters"
                                     }
                                 })}
                             /> 
