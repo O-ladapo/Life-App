@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -18,7 +19,7 @@ func Load() (*Config, error) {
 	var err error = godotenv.Load()
 
 	if err != nil {
-		log.Println("Warning: .env file not found")
+		log.Println("Warning: .env file not found, using system environment variables")
 	}
 
 	var config *Config = &Config{
@@ -28,5 +29,15 @@ func Load() (*Config, error) {
 		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
 	}
 
-	return config, err
+	if config.DatabaseURL == "" {
+		return nil, fmt.Errorf("DATABASE_URL environment variable is required")
+	}
+	if config.JWTSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET environment variable is required")
+	}
+	if config.Port == "" {
+		config.Port = "8080"
+	}
+
+	return config, nil
 }
