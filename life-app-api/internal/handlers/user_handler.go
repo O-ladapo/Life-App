@@ -107,8 +107,8 @@ func CreateUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		verifyURL := fmt.Sprintf("http://localhost:5173/verify?token=%s", token)
-		html := email.VerificationEmailHTML(verifyURL)
+		verifyURL := fmt.Sprintf("%s/verify?token=%s", cfg.FrontendURL, token)
+		html := email.VerificationEmailHTML(cfg.FrontendURL, verifyURL)
 		if err := email.SendEmail(cfg.ResendAPIKey, createdUser.Email, "Verify your email", html); err != nil {
 			err = repository.DeleteUser(pool, createdUser.ID)
 			if err != nil {
@@ -225,8 +225,8 @@ func PasswordResetHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFun
 			return
 		}
 
-		verifyURL := fmt.Sprintf("http://localhost:5173/verify-password?token=%s", token)
-		html := email.PasswordResetEmailHTML(verifyURL)
+		verifyURL := fmt.Sprintf("%s/verify-password?token=%s", cfg.FrontendURL, token)
+		html := email.PasswordResetEmailHTML(cfg.FrontendURL, verifyURL)
 		if err := email.SendEmail(cfg.ResendAPIKey, user.Email, "Reset your password", html); err != nil {
 			log.Println("Failed to send verification email:", err)
 		}

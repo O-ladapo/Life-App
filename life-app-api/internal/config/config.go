@@ -13,6 +13,7 @@ type Config struct {
 	Port         string
 	JWTSecret    string
 	ResendAPIKey string
+	FrontendURL  string
 }
 
 func Load() (*Config, error) {
@@ -27,6 +28,7 @@ func Load() (*Config, error) {
 		Port:         os.Getenv("PORT"),
 		JWTSecret:    os.Getenv("JWT_SECRET"),
 		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
+		FrontendURL:  os.Getenv("FRONTEND_URL"),
 	}
 
 	if config.DatabaseURL == "" {

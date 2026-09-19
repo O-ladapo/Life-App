@@ -7,8 +7,8 @@ import (
 	"life_app_api/internal/handlers"
 	"log"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -59,7 +59,6 @@ func main() {
 
 	// test routes
 	router.GET("/protected-test", auth.AuthMiddleWare(cfg), handlers.TestProtectedHandler())
-	router.GET("/test-email", handlers.SendTestEmailHandler(cfg))
 
 	router.Run(":" + cfg.Port)
 }
