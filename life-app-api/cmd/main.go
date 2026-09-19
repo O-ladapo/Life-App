@@ -33,9 +33,6 @@ func main() {
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
 	}))
-	
-	protectedAuth := router.Group("/auth")
-	protectedAuth.Use(auth.AuthMiddleWare(cfg))
 
 	protectedItem := router.Group("/items")
 	protectedItem.Use(auth.AuthMiddleWare(cfg))
@@ -43,10 +40,10 @@ func main() {
 	protectedFolder := router.Group("/folders")
 	protectedFolder.Use(auth.AuthMiddleWare(cfg))
 
-	protectedAuth.POST("/register", handlers.CreateUserHandler(pool, cfg))
-	protectedAuth.POST("/login", handlers.LoginHandler(pool, cfg))
-	protectedAuth.POST("/password-reset", handlers.PasswordResetHandler(pool, cfg))
-	protectedAuth.POST("/verify-password-reset", handlers.VerifyPasswordReset(pool, cfg))
+	router.POST("/auth/register", handlers.CreateUserHandler(pool, cfg))
+	router.POST("/auth/login", handlers.LoginHandler(pool, cfg))
+	router.POST("/auth/password-reset", handlers.PasswordResetHandler(pool, cfg))
+	router.POST("/auth/verify-password-reset", handlers.VerifyPasswordReset(pool, cfg))
 
 	protectedItem.POST("", handlers.CreateItemHandler(pool))
 	protectedItem.GET("", handlers.GetAllItemsHandler(pool))
