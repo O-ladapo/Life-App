@@ -34,7 +34,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	router.POST("/auth/register", handlers.CreateUserHandler(pool))
+	router.POST("/auth/register", handlers.CreateUserHandler(pool, cfg))
 	router.POST("/auth/login", handlers.LoginHandler(pool, cfg))
 
 	protectedItem := router.Group("/items")
@@ -56,6 +56,7 @@ func main() {
 
 	// Middleware test route
 	router.GET("/protected-test", auth.AuthMiddleWare(cfg), handlers.TestProtectedHandler())
+	router.GET("/test-email", handlers.SendTestEmailHandler(cfg))
 
 	router.Run(":" + cfg.Port)
 }

@@ -1,9 +1,14 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"life_app_api/internal/config"
+	"life_app_api/internal/email"
 	"life_app_api/internal/models"
 	"life_app_api/internal/repository"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -23,13 +28,22 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+	Token    string `json:"token" binding:"required"`
 }
 
 type LoginResponse struct {
 	Token string `json:"token"`
 }
 
-func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func generateVerificationToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+func CreateUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var registerRequest RegisterRequest
 
@@ -70,6 +84,25 @@ func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
+		token, err := generateVerificationToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate verification token"})
+			return
+		}
+
+		expiresAt := time.Now().Add(24 * time.Hour)
+		err = repository.SetVerificationToken(pool, createdUser.ID, token, expiresAt)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save verification token"})
+			return
+		}
+
+		verifyURL := fmt.Sprintf("http://localhost:5173/verify?token=%s", token)
+		html := email.VerificationEmailHTML(verifyURL)
+		if err := email.SendEmail(cfg.ResendAPIKey, createdUser.Email, "Verify your email", html); err != nil {
+			log.Println("Failed to send verification email:", err)
+		}
+
 		c.JSON(http.StatusCreated, createdUser)
 	}
 }
@@ -95,6 +128,14 @@ func LoginHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
+		if loginRequest.Token != "null" {
+			err = repository.VerifyUserByToken(pool, loginRequest.Token, user.ID)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
+				return
+			}
+		}
+	
 		claims := jwt.MapClaims{
 			"user_id":  user.ID,
 			"username": user.Username,
@@ -106,7 +147,7 @@ func LoginHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 
 		tokenString, err := token.SignedString([]byte(cfg.JWTSecret))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokem " + err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token " + err.Error()})
 			return
 		}
 

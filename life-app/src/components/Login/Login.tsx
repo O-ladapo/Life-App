@@ -2,7 +2,7 @@ import { useState } from 'react';
 import infinityImg from '../assets/infinity.png'
 import styles from './Login.module.css'
 import {useForm} from 'react-hook-form'
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../../api/auth';
 
@@ -15,14 +15,20 @@ function Login() {
     const {register, handleSubmit, formState: {errors}} = useForm<LoginFormData>();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     
 
     async function handleLogin(data: LoginFormData) {
         setErrorMessage(null);
+        let token = searchParams.get("token");
+        if (!token){
+            token = "null"
+        }
         try {
             const response = await loginUser({
                 username: data.username,
-                password: data.password
+                password: data.password,
+                token: token
             });
         localStorage.setItem("token", response.token);
         navigate('/home');
@@ -30,7 +36,6 @@ function Login() {
             setErrorMessage(err instanceof Error ? err.message : "Login failed");
         }
     }
-
 
     return (
         <div className={styles.login_page}>

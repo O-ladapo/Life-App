@@ -50,6 +50,7 @@ function App() {
     <>
       <Routes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/verify" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="*" element={<ErrorPageFunction />} />

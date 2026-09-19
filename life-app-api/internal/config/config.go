@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	Port        string
-	JWTSecret   string
+	DatabaseURL  string
+	Port         string
+	JWTSecret    string
+	ResendAPIKey string
 }
 
 func Load() (*Config, error) {
@@ -21,9 +22,10 @@ func Load() (*Config, error) {
 	}
 
 	var config *Config = &Config{
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		Port:        os.Getenv("PORT"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
+		DatabaseURL:  os.Getenv("DATABASE_URL"),
+		Port:         os.Getenv("PORT"),
+		JWTSecret:    os.Getenv("JWT_SECRET"),
+		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
 	}
 
 	return config, err
