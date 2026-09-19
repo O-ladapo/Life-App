@@ -28,11 +28,20 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
-	Token    string `json:"token" binding:"required"`
+	Token    string `json:"token"`
 }
 
 type LoginResponse struct {
 	Token string `json:"token"`
+}
+
+type PasswordResetRequest struct {
+	ResetEmail string `json:"resetEmail" binding:"required"`
+}
+
+type PassswordReset struct {
+	Password string `json:"password" binding:"required"`
+	Token    string `json:"token"`
 }
 
 func generateVerificationToken() (string, error) {
@@ -54,6 +63,7 @@ func CreateUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 
 		if len(registerRequest.Password) < 4 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Password must be at least 4 characters long"})
+			return
 		}
 
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
@@ -100,7 +110,13 @@ func CreateUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 		verifyURL := fmt.Sprintf("http://localhost:5173/verify?token=%s", token)
 		html := email.VerificationEmailHTML(verifyURL)
 		if err := email.SendEmail(cfg.ResendAPIKey, createdUser.Email, "Verify your email", html); err != nil {
-			log.Println("Failed to send verification email:", err)
+			err = repository.DeleteUser(pool, createdUser.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+			return
 		}
 
 		c.JSON(http.StatusCreated, createdUser)
@@ -128,19 +144,24 @@ func LoginHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
+		if loginRequest.Token != "" {
+			err = repository.VerifyUserByToken(pool, loginRequest.Token, user.ID)
+			if err != nil {
+				if strings.Contains(err.Error(), "invalid") {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
+					return
+				}
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			user.Email_verified = true
+		}
+
 		if !user.Email_verified {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User is not verified, please check your email"})
 			return
 		}
 
-		if loginRequest.Token != "null" {
-			err = repository.VerifyUserByToken(pool, loginRequest.Token, user.ID)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
-				return
-			}
-		}
-	
 		claims := jwt.MapClaims{
 			"user_id":  user.ID,
 			"username": user.Username,
@@ -172,6 +193,80 @@ func TestProtectedHandler() gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Protected route accessed successfully!",
 			"user_id": userID,
+		})
+	}
+}
+
+func PasswordResetHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var passwordResetRequest PasswordResetRequest
+
+		if err := c.BindJSON(&passwordResetRequest); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		user, err := repository.GetUserByEmail(pool, passwordResetRequest.ResetEmail)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{"message": "If that email exists, a reset link has been sent."})
+			return
+		}
+
+		token, err := generateVerificationToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate verification token"})
+			return
+		}
+
+		expiresAt := time.Now().Add(1 * time.Hour)
+		err = repository.SetPasswordResetToken(pool, user.ID, token, expiresAt)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save verification token"})
+			return
+		}
+
+		verifyURL := fmt.Sprintf("http://localhost:5173/verify-password?token=%s", token)
+		html := email.PasswordResetEmailHTML(verifyURL)
+		if err := email.SendEmail(cfg.ResendAPIKey, user.Email, "Reset your password", html); err != nil {
+			log.Println("Failed to send verification email:", err)
+		}
+
+		c.JSON(http.StatusOK, user)
+	}
+}
+
+func VerifyPasswordReset(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var passswordReset PassswordReset
+
+		if err := c.BindJSON(&passswordReset); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if len(passswordReset.Password) < 4 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Password must be at least 4 characters long"})
+			return
+		}
+
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passswordReset.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password " + err.Error()})
+			return
+		}
+
+		err = repository.VerifyPasswordResetToken(pool, passswordReset.Token, string(hashedPassword))
+		if err != nil {
+			if strings.Contains(err.Error(), "invalid") {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusAccepted, gin.H{
+			"message": "Password reset successful",
 		})
 	}
 }

@@ -111,5 +111,65 @@
     margin: 4px 0 0;
 }
 
+.success_text {
+    min-height: 20px;
+    color: green;
+    font-size: 16px;
+    margin: 4px 0 0;
+}
 
+
+.modal_overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal_box {
+    position: relative;
+    background: #1E1E1E;
+    padding: 40px;
+    border-radius: 12px;
+    width: 400px;
+    max-width: 90%;
+    text-align: left;
+}
+
+.modal_close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    cursor: pointer;
+}
+
+.modal_input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid white;
+    color: white;
+    padding: 10px 0;
+    margin: 20px 0;
+    font-size: 16px;
+}
+
+.modal_button {
+    width: 50%;
+    border: 1px solid #FFFF;
+    padding: 10px 0;
+    margin-top: 10px;
+    text-align: center;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+}
 

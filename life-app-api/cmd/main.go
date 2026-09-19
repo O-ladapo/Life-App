@@ -33,14 +33,20 @@ func main() {
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
 	}))
-
-	router.POST("/auth/register", handlers.CreateUserHandler(pool, cfg))
-	router.POST("/auth/login", handlers.LoginHandler(pool, cfg))
+	
+	protectedAuth := router.Group("/auth")
+	protectedAuth.Use(auth.AuthMiddleWare(cfg))
 
 	protectedItem := router.Group("/items")
 	protectedItem.Use(auth.AuthMiddleWare(cfg))
+
 	protectedFolder := router.Group("/folders")
 	protectedFolder.Use(auth.AuthMiddleWare(cfg))
+
+	protectedAuth.POST("/register", handlers.CreateUserHandler(pool, cfg))
+	protectedAuth.POST("/login", handlers.LoginHandler(pool, cfg))
+	protectedAuth.POST("/password-reset", handlers.PasswordResetHandler(pool, cfg))
+	protectedAuth.POST("/verify-password-reset", handlers.VerifyPasswordReset(pool, cfg))
 
 	protectedItem.POST("", handlers.CreateItemHandler(pool))
 	protectedItem.GET("", handlers.GetAllItemsHandler(pool))
@@ -54,7 +60,7 @@ func main() {
 	protectedFolder.PUT("/:id", handlers.UpdateFolderHandler(pool))
 	protectedFolder.DELETE("/:id", handlers.DeleteFolderHandler(pool))
 
-	// Middleware test route
+	// test routes
 	router.GET("/protected-test", auth.AuthMiddleWare(cfg), handlers.TestProtectedHandler())
 	router.GET("/test-email", handlers.SendTestEmailHandler(cfg))
 
