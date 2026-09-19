@@ -16,8 +16,8 @@ func CreateUser(pool *pgxpool.Pool, user *models.User) (*models.User, error) {
 	err := pool.QueryRow(ctx, `
 	INSERT INTO users (username, email, password)
 	VALUES ($1, $2, $3)
-	RETURNING id, username, email, created_at`, user.Username, user.Email, user.Password).Scan(
-		&user.ID, &user.Username, &user.Email, &user.Created_at)
+	RETURNING id, username, email, created_at, email_verified, verification_token, verification_token_expires_at`, user.Username, user.Email, user.Password).Scan(
+		&user.ID, &user.Username, &user.Email, &user.Created_at, &user.Email_verified, &user.Verification_token, &user.Verification_token_expires_at)
 
 	if err != nil {
 		return nil, err
@@ -33,10 +33,10 @@ func GetUserByEmail(pool *pgxpool.Pool, email string) (*models.User, error) {
 	var user models.User
 
 	err := pool.QueryRow(ctx, `
-	SELECT id, username, email, password, created_at
+	SELECT id, username, email, password, created_at, email_verified, verification_token, verification_token_expires_at
 	FROM users
 	WHERE email = $1`, email).Scan(
-		&user.ID, &user.Username, &user.Email, &user.Password, &user.Created_at)
+		&user.ID, &user.Username, &user.Email, &user.Password, &user.Created_at, &user.Email_verified, &user.Verification_token, &user.Verification_token_expires_at)
 
 	if err != nil {
 		return nil, err
@@ -52,10 +52,10 @@ func GetUserByUsername(pool *pgxpool.Pool, username string) (*models.User, error
 	var user models.User
 
 	err := pool.QueryRow(ctx, `
-	SELECT id, username, email, password, created_at
+	SELECT id, username, email, password, created_at, email_verified, verification_token, verification_token_expires_at
 	FROM users
 	WHERE username = $1`, username).Scan(
-		&user.ID, &user.Username, &user.Email, &user.Password, &user.Created_at)
+		&user.ID, &user.Username, &user.Email, &user.Password, &user.Created_at, &user.Email_verified, &user.Verification_token, &user.Verification_token_expires_at)
 
 	if err != nil {
 		return nil, err
@@ -71,10 +71,10 @@ func GetUserByID(pool *pgxpool.Pool, id string) (*models.User, error) {
 	var user models.User
 
 	err := pool.QueryRow(ctx, `
-	SELECT id, username, email, password, created_at
+	SELECT id, username, email, password, created_at, email_verified, verification_token, verification_token_expires_at
 	FROM users
 	WHERE id = $1`, id).Scan(
-		&user.ID, &user.Username, &user.Email, &user.Password, &user.Created_at)
+		&user.ID, &user.Username, &user.Email, &user.Password, &user.Created_at, &user.Email_verified, &user.Verification_token, &user.Verification_token_expires_at)
 
 	if err != nil {
 		return nil, err

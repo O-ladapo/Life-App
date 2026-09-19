@@ -128,6 +128,11 @@ func LoginHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
+		if !user.Email_verified {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User is not verified, please check your email"})
+			return
+		}
+
 		if loginRequest.Token != "null" {
 			err = repository.VerifyUserByToken(pool, loginRequest.Token, user.ID)
 			if err != nil {
