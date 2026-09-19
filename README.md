@@ -7,7 +7,7 @@ Tech Stack:
 - Backend: Golang, Gin
 - Database: PostgreSQL
 - Auth: JWT, bcrypt
-- Deploymeent: Vercel (frontend), Railway (backend + database)
+- Deployment: Vercel (frontend), Railway (backend + database)
 
 # Login/Register Pages
 ### Features 
