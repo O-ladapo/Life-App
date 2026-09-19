@@ -1,10 +1,20 @@
 # Life-App
 Creating a general life app designed to include features that I use in my day-to-day life.
-Main features so far: Planner, Budget Calculator, Fitness Tracker.
+Main features so far: Planner, (*Planned: Budget Calculator, Fitness Tracker.*)
+🔗 **Live demo:** [life-app-blue-five.vercel.app](https://life-app-blue-five.vercel.app)
 Tech Stack: 
-- Frontend: React + Typescript
-- Backend: Golang
+- Frontend: React + Typescript + Vite
+- Backend: Golang, Gin
 - Database: PostgreSQL
+- Auth: JWT, bcrypt
+- Deployment: Vercel (frontend), Railway (backend + database)
+
+# Login/Register Pages
+### Features 
+- Registration and login with JWT-based authentication
+- Passwords hashed with bcrypt, never stored in plain text
+- Email verification: New accounts receive a verification link (via Resend) before gaining full access
+- Password reset feature: self-service reset flow using time-limited, single-use tokens sent by email
 
 # Planner
 ### Features 
