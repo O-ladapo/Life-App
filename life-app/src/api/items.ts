@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { Item } from '../components/Planner/components/ItemType';
 
 export function getAllItems() {
     return api.get("/items");
@@ -8,7 +9,15 @@ export function getItemById(id: number) {
     return api.get(`/items/${id}`);
 }
 
-export function createItem(data: unknown) {
+export function getItemsByDate(date: string) {
+    return api.get(`/items/by-date?date=${date}`);
+}
+
+export function getItemsByDateAndType(date: string, itemType: string) {
+    return api.get(`/items/by-upcoming-date?date=${date}&type=${itemType}`);
+}
+
+export function createItem(data: unknown): Promise<Item>  {
     return api.post("/items", data);
 }
 

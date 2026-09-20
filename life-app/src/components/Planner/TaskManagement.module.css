@@ -1,0 +1,42 @@
+:root{
+    --accent: #4B4B4B;
+}
+
+.TaskManagement {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.task_layout {
+    width: min(1900px, calc(100% - 60px));
+    margin: 80px auto 0;
+}
+
+.card {
+    position: relative;
+    width: 100%;
+    min-height: 680px;
+    border-radius: 20px;
+    background-color: #1E1E1E;
+    display: flex;
+    flex-direction: column;
+    justify-content: left; 
+    align-items: center;
+}
+
+.right_section{
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 65%;
+    border-radius: 20px;
+    background-color: #2D2D2D;
+    display: flex;
+    flex-direction: column;
+    justify-content: right; 
+    align-items: center;
+}
+

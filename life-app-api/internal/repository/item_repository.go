@@ -108,6 +108,95 @@ func GetItemByID(pool *pgxpool.Pool, id int, userID string) (*models.Item, error
 	return &item, nil
 }
 
+func GetItemsByDate(pool *pgxpool.Pool, date time.Time, userID string) ([]models.Item, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := pool.Query(ctx, `
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
+		FROM items
+		WHERE user_id = $1 AND start_at = $2
+		ORDER BY start_at`, userID, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []models.Item
+	for rows.Next() {
+		var item models.Item
+
+		if err := rows.Scan(
+			&item.ID,
+			&item.FolderID,
+			&item.Title,
+			&item.Type,
+			&item.Description,
+			&item.Priority,
+			&item.Completed,
+			&item.IsRecurring,
+			&item.RecurrenceRule,
+			&item.RecurrenceRuleCustom,
+			&item.StartAt,
+			&item.EndAt,
+			&item.EmailReminder,
+			&item.CreatedAt,
+			&item.UserID,
+		); err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	return items, rows.Err()
+}
+
+func GetUpcomingItemsByDateAndType(pool *pgxpool.Pool, date time.Time, itemType string, userID string) ([]models.Item, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := pool.Query(ctx, `
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
+		FROM items
+		WHERE user_id = $1 AND start_at > $2 AND type = $3
+		ORDER BY start_at`, userID, date, itemType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []models.Item
+
+	for rows.Next() {
+		var item models.Item
+
+		if err := rows.Scan(
+			&item.ID,
+			&item.FolderID,
+			&item.Title,
+			&item.Type,
+			&item.Description,
+			&item.Priority,
+			&item.Completed,
+			&item.IsRecurring,
+			&item.RecurrenceRule,
+			&item.RecurrenceRuleCustom,
+			&item.StartAt,
+			&item.EndAt,
+			&item.EmailReminder,
+			&item.CreatedAt,
+			&item.UserID,
+		); err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	return items, rows.Err()
+}
+
 func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID string) (*models.Item, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

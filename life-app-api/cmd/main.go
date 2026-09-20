@@ -48,6 +48,8 @@ func main() {
 	protectedItem.POST("", handlers.CreateItemHandler(pool))
 	protectedItem.GET("", handlers.GetAllItemsHandler(pool))
 	protectedItem.GET("/:id", handlers.GetItemByIDHandler(pool))
+	protectedItem.GET("/by-date", handlers.GetItemsByDateHandler(pool))
+	protectedItem.GET("/by-upcoming-date", handlers.GetUpcomingItemsByDateAndTypeHandler(pool))
 	protectedItem.PUT("/:id", handlers.UpdateItemHandler(pool))
 	protectedItem.DELETE("/:id", handlers.DeleteItemHandler(pool))
 
