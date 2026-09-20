@@ -10,7 +10,7 @@ export function getItemById(id: number) {
 }
 
 export function getItemsByDate(date: string) {
-    return api.get(`/items/by-date?date=${date}`);
+    return api.get(`/items/by-date?date=${date}`) as Promise<Item[]>;
 }
 
 export function getItemsByDateAndType(date: string, itemType: string) {

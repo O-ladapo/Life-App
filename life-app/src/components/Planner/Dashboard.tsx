@@ -62,14 +62,10 @@ function Dashboard() {
             end_at: buildTimestamp(data.endDate, data.endTime, data.entireDay),
             email_reminder: data.type === 'reminder' ? data.emailReminder : false,
         };
-        try {
-            const createdItem = await createItem(payload);
+        const createdItem = await createItem(payload);
 
-            if (createdItem.start_at?.slice(0, 10) === todayStr) {
-                setItems((prev) => [...prev, createdItem]);
-            }
-        } catch (err) {
-            console.error('Failed to create item:', err);
+        if (createdItem.start_at?.slice(0, 10) === todayStr) {
+            setItems((prev) => [...prev, createdItem]);
         }
     }
 

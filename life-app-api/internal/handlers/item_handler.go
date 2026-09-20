@@ -56,6 +56,11 @@ func CreateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
+		if input.StartAt != nil && input.EndAt != nil && input.EndAt.Before(*input.StartAt) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "End date and time cannot be before start date and time"})
+			return
+		}
+
 		priority := "none"
 		if input.Priority != nil {
 			priority = *input.Priority
@@ -158,7 +163,9 @@ func GetItemsByDateHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		items, err := repository.GetItemsByDate(pool, date, userID)
+		startUTC := date
+		endUTC := date.AddDate(0, 0, 1)
+		items, err := repository.GetItemsByDate(pool, startUTC, endUTC, userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

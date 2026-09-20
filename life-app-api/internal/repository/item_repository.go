@@ -108,21 +108,24 @@ func GetItemByID(pool *pgxpool.Pool, id int, userID string) (*models.Item, error
 	return &item, nil
 }
 
-func GetItemsByDate(pool *pgxpool.Pool, date time.Time, userID string) ([]models.Item, error) {
+func GetItemsByDate(pool *pgxpool.Pool, startUTC time.Time, endUTC time.Time, userID string) ([]models.Item, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	rows, err := pool.Query(ctx, `
 		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
 		FROM items
-		WHERE user_id = $1 AND start_at = $2
-		ORDER BY start_at`, userID, date)
+		WHERE user_id = $1
+		  AND start_at IS NOT NULL
+		  AND start_at >= $2
+		  AND start_at < $3
+		ORDER BY start_at`, userID, startUTC, endUTC)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []models.Item
+	items := make([]models.Item, 0)
 	for rows.Next() {
 		var item models.Item
 
@@ -166,7 +169,7 @@ func GetUpcomingItemsByDateAndType(pool *pgxpool.Pool, date time.Time, itemType 
 	}
 	defer rows.Close()
 
-	var items []models.Item
+	items := make([]models.Item, 0)
 
 	for rows.Next() {
 		var item models.Item

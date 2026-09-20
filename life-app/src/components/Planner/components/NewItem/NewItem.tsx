@@ -21,15 +21,17 @@ export type NewTaskFormData = {
 type NewTaskFormProps = {
     onClose: () => void;
     initialType: 'task' | 'reminder';
-    onCreateTask: (data: NewTaskFormData & { type: 'task' | 'reminder' }) => void;
+    onCreateTask: (data: NewTaskFormData & { type: 'task' | 'reminder' }) => Promise<void>;
 };
 
 function NewTaskForm({ onClose, initialType, onCreateTask }: NewTaskFormProps) {
     const [itemType, setItemType] = useState<'task' | 'reminder'>(initialType);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const {
         register,
         handleSubmit,
+        getValues,
         watch,
         formState: { errors },
     } = useForm<NewTaskFormData>({
@@ -44,9 +46,27 @@ function NewTaskForm({ onClose, initialType, onCreateTask }: NewTaskFormProps) {
     const entireDay = watch('entireDay');
     const recurrenceRule = watch('recurrenceRule');
 
-    function handleCreateTask(data: NewTaskFormData) {
-        onCreateTask({ ...data, type: itemType });
-        onClose();
+    function validateEndDateTime(): true | string {
+        const values = getValues();
+        const start = new Date(`${values.startDate}T${values.startTime || '00:00'}`);
+        const end = new Date(`${values.endDate}T${values.endTime || '00:00'}`);
+
+        if (entireDay) {
+            return values.endDate >= values.startDate || 'End date cannot be before start date';
+        }
+
+        return end >= start || 'End time cannot be before start time';
+    }
+
+    async function handleCreateTask(data: NewTaskFormData) {
+        setSubmitError(null);
+
+        try {
+            await onCreateTask({ ...data, type: itemType });
+            onClose();
+        } catch (err) {
+            setSubmitError(err instanceof Error ? err.message : 'Failed to create item');
+        }
     }
 
     return (
@@ -80,6 +100,8 @@ function NewTaskForm({ onClose, initialType, onCreateTask }: NewTaskFormProps) {
                 </div>
 
                 <h2 className={styles.modal_title}>New</h2>
+
+                {submitError && <p className={styles.error_text}>{submitError}</p>}
 
                 <div className={styles.info_section}>
                     <input
@@ -138,10 +160,17 @@ function NewTaskForm({ onClose, initialType, onCreateTask }: NewTaskFormProps) {
                                 className={styles.box_input}
                                 {...register('endDate', {
                                     required: 'End date is required',
+                                    validate: validateEndDateTime,
                                 })}
                             />
                             {errors.endDate && <p className={styles.error_text}>{errors.endDate.message}</p>}
-                            {!entireDay && <input type="time" className={styles.box_input} {...register('endTime')} />}
+                            {!entireDay && (
+                                <input
+                                    type="time"
+                                    className={styles.box_input}
+                                    {...register('endTime', { validate: validateEndDateTime })}
+                                />
+                            )}
                         </div>
                     </div>
 

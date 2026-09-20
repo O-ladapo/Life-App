@@ -22,7 +22,7 @@ export function useItemsByDate(date: string) {
                 if (!cancelled) {
                     setState({
                         date,
-                        items,
+                        items: items.filter((item) => item.start_at !== null),
                         error: null,
                     });
                 }
