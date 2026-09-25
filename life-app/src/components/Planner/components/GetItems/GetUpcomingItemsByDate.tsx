@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getUpcomingItemsByDateAndType } from '../../../../api/items';
 import type { Item } from '../ItemType';
-import type { SetStateAction } from 'react';
 
 export function useUpcomingItemsByDate(date: string, itemType: string) {
     const [state, setState] = useState<{
@@ -16,53 +15,38 @@ export function useUpcomingItemsByDate(date: string, itemType: string) {
         error: null,
     });
 
-    useEffect(() => {
-        let cancelled = false;
-
-        getUpcomingItemsByDateAndType(date, itemType)
+    const refetch = useCallback(() => {
+        return getUpcomingItemsByDateAndType(date, itemType)
             .then((items) => {
-                if (!cancelled) {
-                    setState({
-                        date,
-                        items: items.filter((item: Item) => item.start_at !== null),
-                        itemType,
-                        error: null,
-                    });
-                }
+                setState({
+                    date,
+                    items: items.filter((item: Item) => item.start_at !== null),
+                    itemType,
+                    error: null,
+                });
             })
             .catch((err: unknown) => {
-                if (!cancelled) {
-                    setState({
-                        date,
-                        items: [],
-                        itemType,
-                        error: err instanceof Error
-                            ? err.message
-                            : 'Failed to load items',
-                    });
-                }
+                setState({
+                    date,
+                    items: [],
+                    itemType,
+                    error: err instanceof Error
+                        ? err.message
+                        : 'Failed to load items',
+                });
             });
-
-        return () => {
-            cancelled = true;
-        };
     }, [date, itemType]);
 
-    const isCurrentDate = state.date === date;
+    useEffect(() => {
+        refetch();
+    }, [refetch]);
 
-    const updateItems = (value: SetStateAction<Item[]>) => {
-        setState((previous) => ({
-            ...previous,
-            items: typeof value === 'function'
-                ? value(previous.items)
-                : value,
-        }));
-    };
+    const isCurrentDate = state.date === date;
 
     return {
         items: isCurrentDate ? state.items : [],
         loading: !isCurrentDate,
         error: isCurrentDate ? state.error : null,
-        setUpcomingItems: updateItems,
+        refetch,
     };
 }

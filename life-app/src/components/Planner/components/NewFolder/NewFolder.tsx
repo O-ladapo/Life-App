@@ -17,6 +17,7 @@ type NewFolderFormProps = {
 function NewFolderForm({ onClose, initialType, onCreateFolder }: NewFolderFormProps) {
     const [itemType, setItemType] = useState<'task' | 'reminder'>(initialType);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const {
         register,
@@ -26,6 +27,9 @@ function NewFolderForm({ onClose, initialType, onCreateFolder }: NewFolderFormPr
 
 
     async function handleCreateFolder(data: NewFolderFormData) {
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         setSubmitError(null);
 
         try {
@@ -33,6 +37,8 @@ function NewFolderForm({ onClose, initialType, onCreateFolder }: NewFolderFormPr
             onClose();
         } catch (err) {
             setSubmitError(err instanceof Error ? err.message : 'Failed to create folder');
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -63,7 +69,9 @@ function NewFolderForm({ onClose, initialType, onCreateFolder }: NewFolderFormPr
                         </button>
                     </div>
 
-                    <button type="submit" className={styles.confirm_button}><img src={check} width="34" height="44"/></button>
+                    <button type="submit" className={styles.confirm_button} disabled={isSubmitting}>
+                        <img src={check} width="34" height="44"/>
+                    </button>
                 </div>
 
                 <h2 className={styles.modal_title}>New Folder</h2>

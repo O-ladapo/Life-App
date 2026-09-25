@@ -78,8 +78,18 @@ function TaskManagement() {
     const [folders, setFolders] = useState<Folder[]>([]);
     const [selectedView, setSelectedView] = useState<'today' | 'upcoming'>('today');
     const todayStr = getLocalDateString(new Date());
-    const { items: todayItems, setItems } = useItemsByDate(todayStr);
-    const { items: upcomingItems, setUpcomingItems } = useUpcomingItemsByDate(todayStr, 'task');
+    const {
+        items: todayItems,
+        setItems,
+        loading: todayLoading,
+        error: todayError,
+    } = useItemsByDate(todayStr);
+    const {
+        items: upcomingItems,
+        refetch: refetchUpcomingItems,
+        loading: upcomingLoading,
+        error: upcomingError,
+    } = useUpcomingItemsByDate(todayStr, 'task');
 
     function openNewTaskForm() {
         setFormType('task');
@@ -117,11 +127,12 @@ function TaskManagement() {
         };
         const createdItem = await createItem(payload);
 
-        if (createdItem.start_at?.slice(0, 10) === todayStr) {
+        const createdStartDate = createdItem.start_at?.slice(0, 10);
+
+        if (createdStartDate === todayStr) {
             setItems((prev) => [...prev, createdItem]);
-        }
-        else {
-            setUpcomingItems((prev) => [...prev, createdItem]);
+        } else if (createdStartDate && createdStartDate > todayStr) {
+            await refetchUpcomingItems();
         }
     }
 
@@ -202,7 +213,10 @@ function TaskManagement() {
                         </div>
                         <div className={styles.line} />
 
-                        {selectedView === 'today' && tasks.map((todayTasks) => (
+                        {selectedView === 'today' && !todayLoading && todayError && (
+                            <p className={styles.items_status}>{todayError}</p>
+                        )}
+                        {selectedView === 'today' && !todayLoading && !todayError && tasks.map((todayTasks) => (
                             <div key={todayTasks.id} className={styles.task_item}>
                                 <input type="checkbox" className={styles.task_checkbox} />
                                 <div className={styles.task_content}>
@@ -226,7 +240,10 @@ function TaskManagement() {
                             </div>
                         ))}
 
-                        {selectedView === 'upcoming' && upcomingTasks.map((upcomingTasks) => (
+                        {selectedView === 'upcoming' && !upcomingLoading && upcomingError && (
+                            <p className={styles.items_status}>{upcomingError}</p>
+                        )}
+                        {selectedView === 'upcoming' && !upcomingLoading && !upcomingError && upcomingTasks.map((upcomingTasks) => (
                             <div key={upcomingTasks.id} className={styles.task_item}>
                                 <input type="checkbox" className={styles.task_checkbox} />
                                 <div className={styles.task_content}>

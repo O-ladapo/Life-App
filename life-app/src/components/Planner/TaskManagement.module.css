@@ -193,6 +193,13 @@
     display: block;
 }
 
+.items_status {
+    align-self: flex-start;
+    margin-top: 18px;
+    color: #bdbdbd;
+    font-size: 18px;
+}
+
 .task_item {
     display: flex;
     flex-wrap: wrap;

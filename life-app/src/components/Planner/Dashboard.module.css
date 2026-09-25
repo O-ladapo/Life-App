@@ -45,6 +45,12 @@
     color: white;
 }
 
+.items_status,
+.empty_state {
+    color: #bdbdbd;
+    font-size: 18px;
+}
+
 .dashboard_buttons_row {
     position: absolute;
     top: 750px;

@@ -25,7 +25,7 @@ function Dashboard() {
     const [showForm, setShowForm] = useState(false);
     const [formType, setFormType] = useState<'task' | 'reminder'>('task');
     const todayStr = getLocalDateString(new Date());
-    const { items, setItems } = useItemsByDate(todayStr);
+    const { items, setItems, loading, error } = useItemsByDate(todayStr);
 
 
     function openNewTaskForm() {
@@ -80,9 +80,14 @@ function Dashboard() {
             </div>
 
             <div className={styles.items_content}>
+                {!loading && error && <p className={styles.items_status}>{error}</p>}
+
                 <div>
                     <h3>Tasks</h3>
-                    {tasks.map((t) => (
+                    {!loading && !error && tasks.length === 0 && (
+                        <p className={styles.empty_state}>No tasks for today</p>
+                    )}
+                    {!loading && !error && tasks.map((t) => (
                         <div key={t.id} className={styles.item_row}>
                             <img src={task} width="42" height="42" alt="task" />
                             <span className={styles.item_title}>{t.title}</span>
@@ -92,7 +97,10 @@ function Dashboard() {
 
                 <div>
                     <h3>Reminders</h3>
-                    {reminders.map((r) => (
+                    {!loading && !error && reminders.length === 0 && (
+                        <p className={styles.empty_state}>No reminders for today</p>
+                    )}
+                    {!loading && !error && reminders.map((r) => (
                         <div key={r.id} className={styles.item_row}>
                             <img src={reminder} width="42" height="42" alt="reminder" />
                             <span className={styles.item_title}>{r.title}</span>

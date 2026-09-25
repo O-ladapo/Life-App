@@ -27,6 +27,7 @@ type NewTaskFormProps = {
 function NewTaskForm({ onClose, initialType, onCreateTask }: NewTaskFormProps) {
     const [itemType, setItemType] = useState<'task' | 'reminder'>(initialType);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const {
         register,
@@ -59,6 +60,9 @@ function NewTaskForm({ onClose, initialType, onCreateTask }: NewTaskFormProps) {
     }
 
     async function handleCreateTask(data: NewTaskFormData) {
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         setSubmitError(null);
 
         try {
@@ -66,6 +70,8 @@ function NewTaskForm({ onClose, initialType, onCreateTask }: NewTaskFormProps) {
             onClose();
         } catch (err) {
             setSubmitError(err instanceof Error ? err.message : 'Failed to create item');
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -96,7 +102,9 @@ function NewTaskForm({ onClose, initialType, onCreateTask }: NewTaskFormProps) {
                         </button>
                     </div>
 
-                    <button type="submit" className={styles.confirm_button}><img src={check} width="34" height="44"/></button>
+                    <button type="submit" className={styles.confirm_button} disabled={isSubmitting}>
+                        <img src={check} width="34" height="44"/>
+                    </button>
                 </div>
 
                 <h2 className={styles.modal_title}>New</h2>
