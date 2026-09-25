@@ -20,10 +20,15 @@ func runMigrations(databaseURL string) error {
 	if err != nil {
 		return err
 	}
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-	return nil
+	if err := m.Up(); err != nil {
+        if err == migrate.ErrNoChange {
+            log.Println("No new migrations to apply")
+            return nil
+        }
+        return err
+    }
+    log.Println("Migrations applied successfully")
+    return nil
 }
 
 func main() {
