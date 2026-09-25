@@ -163,7 +163,6 @@ function Reminders() {
         }
         const payload = {
             title: data.title,
-            type: 'reminder',
             folder_id: data.folder_id ?? null,
             description: data.description || null,
             priority: data.priority,
@@ -304,7 +303,7 @@ function Reminders() {
             title: data.title,
             type: data.type,
         };
-        const createdFolder = await createFolder({ ...payload, type: 'reminder' }) as Folder;
+        const createdFolder = await createFolder(payload) as Folder;
         setFolders((prev) => [...prev, createdFolder]);
     }
 

@@ -33,6 +33,7 @@ function EditTaskForm({ onClose, initialType, taskID, onEditTask }: EditTaskForm
 
     const {
         register,
+        unregister,
         handleSubmit,
         getValues,
         control,
@@ -79,6 +80,13 @@ function EditTaskForm({ onClose, initialType, taskID, onEditTask }: EditTaskForm
             emailReminder: item.email_reminder,
         });
     }, [item, reset]);
+
+    useEffect(() => {
+    if (itemType !== 'task') {
+        unregister('endDate');
+        unregister('endTime');
+    }
+    }, [itemType, unregister]);
 
     const entireDay = useWatch({ control, name: 'entireDay' });
     const recurrenceRule = useWatch({ control, name: 'recurrenceRule' });

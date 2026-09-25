@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import styles from './NewItem.module.css';
 import cross from '../../../assets/cross.png'
@@ -34,6 +34,7 @@ function NewTaskForm({ onClose, initialType, folderName, folderId, onCreateTask 
 
     const {
         register,
+        unregister,
         handleSubmit,
         getValues,
         watch,
@@ -46,6 +47,13 @@ function NewTaskForm({ onClose, initialType, folderName, folderId, onCreateTask 
             emailReminder: false,
         },
     });
+
+    useEffect(() => {
+    if (itemType !== 'task') {
+        unregister('endDate');
+        unregister('endTime');
+    }
+    }, [itemType, unregister]);
 
     const entireDay = watch('entireDay');
     const recurrenceRule = watch('recurrenceRule');
