@@ -6,6 +6,7 @@ import Home from "./components/Home/Home"
 import PasswordResetPage from "./components/PasswordResetPage/PasswordResetPage";
 import Dashboard from "./components/Planner/Dashboard";
 import TaskManagement from "./components/Planner/TaskManagement";
+import Reminders from "./components/Planner/Reminder"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem("token");
@@ -27,6 +28,7 @@ function App() {
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/planner" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/planner/tasks" element={<ProtectedRoute><TaskManagement /></ProtectedRoute>} />
+        <Route path="/planner/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
     </>

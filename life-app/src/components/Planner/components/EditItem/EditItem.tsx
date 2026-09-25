@@ -21,11 +21,13 @@ export type EditTaskFormData = {
 
 type EditTaskFormProps = {
     onClose: () => void;
+    initialType: 'task' | 'reminder';
     taskID: number;
     onEditTask: (data: EditTaskFormData) => Promise<void>;
 };
 
-function EditTaskForm({ onClose, taskID, onEditTask }: EditTaskFormProps) {
+function EditTaskForm({ onClose, initialType, taskID, onEditTask }: EditTaskFormProps) {
+    const [itemType] = useState<'task' | 'reminder'>(initialType);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -180,28 +182,30 @@ function EditTaskForm({ onClose, taskID, onEditTask }: EditTaskFormProps) {
                             {!entireDay && <input type="time" className={styles.box_input} {...register('startTime')} />}
                         </div>
                     </div>
-
-                    <div className={styles.row_section}>
-                        <label>Ends</label>
-                        <div className={styles.datetime_group}>
-                            <input
-                                type="date"
-                                className={styles.box_input}
-                                {...register('endDate', {
-                                    required: 'End date is required',
-                                    validate: validateEndDateTime,
-                                })}
-                            />
-                            {errors.endDate && <p className={styles.error_text}>{errors.endDate.message}</p>}
-                            {!entireDay && (
+                    
+                    { itemType == 'task' && (
+                        <div className={styles.row_section}>
+                            <label>Ends</label>
+                            <div className={styles.datetime_group}>
                                 <input
-                                    type="time"
+                                    type="date"
                                     className={styles.box_input}
-                                    {...register('endTime', { validate: validateEndDateTime })}
+                                    {...register('endDate', {
+                                        required: 'End date is required',
+                                        validate: validateEndDateTime,
+                                    })}
                                 />
-                            )}
+                                {errors.endDate && <p className={styles.error_text}>{errors.endDate.message}</p>}
+                                {!entireDay && (
+                                    <input
+                                        type="time"
+                                        className={styles.box_input}
+                                        {...register('endTime', { validate: validateEndDateTime })}
+                                    />
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div className={styles.row_section}>
                         <label>Recurring</label>

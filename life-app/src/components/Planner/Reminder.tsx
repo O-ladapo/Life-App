@@ -1,4 +1,4 @@
-import styles from './TaskManagement.module.css'
+import styles from './Reminder.module.css'
 import PlannerNavbar from '../Navbars/Planner_navbar';
 import add from '../../components/assets/add.png';
 import folder from '../../components/assets/folder.png';
@@ -43,17 +43,13 @@ function getPriorityImage(priority: string): string | undefined {
     return priorityImages[priority.toLowerCase()];
 }
 
-function formatTaskTime(startAt: string | null, endAt: string | null): string | null {
+function formatReminderTime(startAt: string | null): string | null {
     const startDate = startAt ? new Date(startAt) : null;
-    const endDate = endAt ? new Date(endAt) : null;
-    const bothAtMidnight = startDate
-        && endDate
+    const atMidnight = startDate
         && startDate.getUTCHours() === 0
         && startDate.getUTCMinutes() === 0
-        && endDate.getUTCHours() === 0
-        && endDate.getUTCMinutes() === 0;
 
-    if (bothAtMidnight) return null;
+    if (atMidnight) return null;
 
     const formatTime = (value: string | null) => {
         if (!value) return null;
@@ -70,23 +66,20 @@ function formatTaskTime(startAt: string | null, endAt: string | null): string | 
         });
     };
     const startTime = formatTime(startAt);
-    const endTime = formatTime(endAt);
 
-    if (startTime && startTime === endTime) return startTime;
-    if (startTime && endTime) return `${startTime} - ${endTime}`;
-    return startTime ?? endTime ?? 'No time set';
+    return startTime ?? 'No time set';
 }
 
-function TaskManagement() {
+function Reminders() {
     const [showForm, setShowForm] = useState(false);
     const [showFolderForm, setShowFolderForm] = useState(false);
-    const [showEditTaskForm, setShowEditTaskForm] = useState(false);
-    const [selectedEditTaskId, setSelectedEditTaskId] = useState<number | null>(null);
+    const [showEditReminderForm, setShowEditReminderForm] = useState(false);
+    const [selectedEditReminderId, setSelectedEditReminderId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string; view: 'today' | 'upcoming' | 'folder' } | null>(null);
     const [showDeleteFolderForm, setShowDeleteFolderForm] = useState(false);
-    const [newTaskFolder, setNewTaskFolder] = useState<Folder | null>(null);
+    const [newReminderFolder, setNewReminderFolder] = useState<Folder | null>(null);
     const [showEditFolderForm, setShowEditFolderForm] = useState(false);
-    const [formType, setFormType] = useState<'task' | 'reminder'>('task');
+    const [formType, setFormType] = useState<'task' | 'reminder'>('reminder');
     const [folders, setFolders] = useState<Folder[]>([]);
     const [selectedView, setSelectedView] = useState<'today' | 'upcoming' | 'folder'>('today');
     const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
@@ -109,16 +102,16 @@ function TaskManagement() {
         refetch: refetchUpcomingItems,
         loading: upcomingLoading,
         error: upcomingError,
-    } = useUpcomingItemsByDate(todayStr, 'task');
+    } = useUpcomingItemsByDate(todayStr, 'reminder');
 
-    function openNewTaskForm(folder: Folder | null = null) {
-        setFormType('task');
-        setNewTaskFolder(folder);
+    function openNewReminderForm(folder: Folder | null = null) {
+        setFormType('reminder');
+        setNewReminderFolder(folder);
         setShowForm(true);
     }
 
     function openNewFolderForm() {
-        setFormType('task');
+        setFormType('reminder');
         setShowFolderForm(true);
     }
 
@@ -126,9 +119,9 @@ function TaskManagement() {
         if (selectedFolder) setShowEditFolderForm(true);
     }
 
-    function openEditTaskForm(itemId: number) {
-        setSelectedEditTaskId(itemId);
-        setShowEditTaskForm(true);
+    function openEditReminderForm(itemId: number) {
+        setSelectedEditReminderId(itemId);
+        setShowEditReminderForm(true);
     }
 
     async function openFolder(folder: Folder) {
@@ -143,7 +136,7 @@ function TaskManagement() {
             const items = await getAllItems();
             if (requestId !== folderRequestIdRef.current) return;
 
-            setFolderItems(items.filter((item) => item.type === 'task' && item.folder_id === folder.id));
+            setFolderItems(items.filter((item) => item.type === 'reminder' && item.folder_id === folder.id));
         } catch (error) {
             if (requestId !== folderRequestIdRef.current) return;
 
@@ -156,7 +149,7 @@ function TaskManagement() {
         }
     }
 
-    async function handleCreateItem(data: NewTaskFormData  & { type: 'task' | 'reminder' }) {
+    async function handleCreateReminder(data: NewTaskFormData  & { type: 'task' | 'reminder' }) {
         function buildTimestamp(date: string, time: string, entireDay: boolean): string | null {
             if (!date) return null;
 
@@ -170,7 +163,7 @@ function TaskManagement() {
         }
         const payload = {
             title: data.title,
-            type: data.type,
+            type: 'reminder',
             folder_id: data.folder_id ?? null,
             description: data.description || null,
             priority: data.priority,
@@ -179,7 +172,7 @@ function TaskManagement() {
             recurrence_rule_custom: data.recurrenceRule === 'custom' ? data.recurrenceCustom : null,
             start_at: buildTimestamp(data.startDate, data.startTime, data.entireDay),
             end_at: buildTimestamp(data.endDate, data.endTime, data.entireDay),
-            email_reminder: data.type === 'reminder' ? data.emailReminder : false,
+            email_reminder: data.emailReminder,
         };
         const createdItem = await createItem(payload);
 
@@ -209,7 +202,7 @@ function TaskManagement() {
         }
     }
 
-    async function handleToggleTask(itemId: number, completed: boolean, view: 'today' | 'upcoming' | 'folder') {
+    async function handleToggleReminder(itemId: number, completed: boolean, view: 'today' | 'upcoming' | 'folder') {
         if (view === 'today') setTodayActionError(null);
         if (view === 'upcoming') setUpcomingActionError(null);
         if (view === 'folder') setFolderActionError(null);
@@ -229,18 +222,18 @@ function TaskManagement() {
 
             setItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to update task';
+            const message = error instanceof Error ? error.message : 'Failed to update reminder';
             if (view === 'today') setTodayActionError(message);
             if (view === 'upcoming') setUpcomingActionError(message);
             if (view === 'folder') setFolderActionError(message);
         }
     }
 
-    function openDeleteTaskForm(itemId: number, title: string, view: 'today' | 'upcoming' | 'folder') {
+    function openDeleteReminderForm(itemId: number, title: string, view: 'today' | 'upcoming' | 'folder') {
         setDeleteTarget({ id: itemId, title, view });
     }
 
-    async function handleDeleteTask() {
+    async function handleDeleteReminder() {
         if (!deleteTarget) return;
 
         await deleteItem(deleteTarget.id);
@@ -256,8 +249,8 @@ function TaskManagement() {
         setDeleteTarget(null);
     }
 
-    async function handleEditTask(data: EditTaskFormData) {
-        if (selectedEditTaskId === null) return;
+    async function handleEditReminder(data: EditTaskFormData) {
+        if (selectedEditReminderId === null) return;
 
         const buildTimestamp = (date: string, time: string, entireDay: boolean): string | null => {
             if (!date) return null;
@@ -272,7 +265,7 @@ function TaskManagement() {
                 entireDay ? 0 : minutes,
             )).toISOString();
         };
-        const updatedItem = await updateItem(selectedEditTaskId, {
+        const updatedItem = await updateItem(selectedEditReminderId, {
             title: data.title,
             description: data.description || null,
             priority: data.priority,
@@ -301,9 +294,9 @@ function TaskManagement() {
         await refetchUpcomingItems();
     }
 
-    function closeEditTaskForm() {
-        setShowEditTaskForm(false);
-        setSelectedEditTaskId(null);
+    function closeEditReminderForm() {
+        setShowEditReminderForm(false);
+        setSelectedEditReminderId(null);
     }
 
     async function handleCreateFolder(data: NewFolderFormData  & { type: 'task' | 'reminder' }) {
@@ -311,7 +304,7 @@ function TaskManagement() {
             title: data.title,
             type: data.type,
         };
-        const createdFolder = await createFolder(payload) as Folder;
+        const createdFolder = await createFolder({ ...payload, type: 'reminder' }) as Folder;
         setFolders((prev) => [...prev, createdFolder]);
     }
 
@@ -338,7 +331,7 @@ function TaskManagement() {
             try {
                 const response = await getAllFolders();
                 const allFolders = Array.isArray(response) ? response as Folder[] : [];
-                setFolders(allFolders.filter((folder) => folder.type === 'task'));
+                setFolders(allFolders.filter((folder) => folder.type === 'reminder'));
             } catch (error) {
                 console.error('Failed to load folders', error);
                 setFolders([]);
@@ -348,21 +341,21 @@ function TaskManagement() {
         loadFolders();
     }, []);
 
-    const taskFolders = folders.filter((folder) => folder.type === 'task');
-    const tasks = todayItems.filter((item) => item.type === 'task');
-    const upcomingTasks = upcomingItems.filter((item) => item.type === 'task');
+    const reminderFolders = folders.filter((folder) => folder.type === 'reminder');
+    const reminders = todayItems.filter((item) => item.type === 'reminder');
+    const upcomingReminders = upcomingItems.filter((item) => item.type === 'reminder');
     
     return (
-        <div className={styles.TaskManagement}>
+        <div className={styles.Reminder}>
             <PlannerNavbar />
-            <div className={styles.task_layout}>
+            <div className={styles.reminder_layout}>
                 <div className={styles.card}>
                     <div className={styles.left_section}>
-                        <div className={styles.add_task_row}>
-                            <button className={styles.left_section_buttons} onClick={() => openNewTaskForm()}>
+                        <div className={styles.add_reminder_row}>
+                            <button className={styles.left_section_buttons} onClick={() => openNewReminderForm()}>
                                 <img src={add} width="50" height="50"/>
                             </button>
-                            <h2>Add Task</h2>
+                            <h2>Add Reminder</h2>
                         </div>
                         
                         <button type="button" className={styles.today_button} onClick={() => setSelectedView('today')}>
@@ -378,7 +371,7 @@ function TaskManagement() {
                         </div>
 
                         <div className={styles.folder_list}>
-                            {taskFolders.map((f) => (
+                            {reminderFolders.map((f) => (
                                     <button key={f.id} type="button" className={styles.folder_item} onClick={() => openFolder(f)}>
                                     <span className={styles.folder_bullet}>•</span>
                                     <span>{f.title}</span>
@@ -406,21 +399,21 @@ function TaskManagement() {
                                     <div className={styles.folder_header_actions}>
                                         <button
                                             type="button"
-                                            className={styles.folder_add_task_button}
-                                            onClick={() => openNewTaskForm(selectedFolder)}
+                                            className={styles.folder_add_reminder_button}
+                                            onClick={() => openNewReminderForm(selectedFolder)}
                                         >
-                                            Add Task
+                                            Add Reminder
                                         </button>
                                         <button
                                             type="button"
-                                            className={styles.folder_add_task_button}
+                                            className={styles.folder_add_reminder_button}
                                             onClick={openEditFolderForm}
                                         >
                                             Edit Folder
                                         </button>
                                         <button
                                             type="button"
-                                            className={styles.folder_add_task_button}
+                                            className={styles.folder_add_reminder_button}
                                             onClick={() => setShowDeleteFolderForm(true)}
                                         >
                                             Delete Folder
@@ -433,92 +426,92 @@ function TaskManagement() {
                         {selectedView === 'today' && !todayLoading && (todayError || todayActionError) && (
                             <p className={styles.items_status}>{todayError || todayActionError}</p>
                         )}
-                        {selectedView === 'today' && !todayLoading && !todayError && tasks.map((todayTasks) => (
-                            <div key={todayTasks.id} className={styles.task_item}>
+                        {selectedView === 'today' && !todayLoading && !todayError && reminders.map((todayReminder) => (
+                            <div key={todayReminder.id} className={styles.reminder_item}>
                                 <input
                                     type="checkbox"
-                                    className={styles.task_checkbox}
-                                    checked={todayTasks.completed}
-                                    onChange={(event) => handleToggleTask(todayTasks.id, event.target.checked, 'today')}
+                                    className={styles.reminder_checkbox}
+                                    checked={todayReminder.completed}
+                                    onChange={(event) => handleToggleReminder(todayReminder.id, event.target.checked, 'today')}
                                 />
-                                <div className={styles.task_content}>
-                                    <div className={styles.task_title_row}>
-                                        <span className={styles.task_text}>{todayTasks.title}</span>
-                                        {getPriorityImage(todayTasks.priority) && (
+                                <div className={styles.reminder_content}>
+                                    <div className={styles.reminder_title_row}>
+                                        <span className={styles.reminder_text}>{todayReminder.title}</span>
+                                        {getPriorityImage(todayReminder.priority) && (
                                             <img
                                                 className={styles.priority_icon}
-                                                src={getPriorityImage(todayTasks.priority)}
+                                                src={getPriorityImage(todayReminder.priority)}
                                             />
                                         )}
                                     </div>
-                                    {formatTaskTime(todayTasks.start_at, todayTasks.end_at) && (
-                                        <div className={styles.task_time}>
+                                    {formatReminderTime(todayReminder.start_at) && (
+                                        <div className={styles.reminder_time}>
                                             <img src={clock} />
-                                            <span>{formatTaskTime(todayTasks.start_at, todayTasks.end_at)}</span>
+                                            <span>{formatReminderTime(todayReminder.start_at)}</span>
                                         </div>
                                     )}
                                 </div>
-                                <div className={styles.task_actions}>
-                                    <button type="button" className={styles.task_action_button} onClick={() => openEditTaskForm(todayTasks.id)}>
+                                <div className={styles.reminder_actions}>
+                                    <button type="button" className={styles.reminder_action_button} onClick={() => openEditReminderForm(todayReminder.id)}>
                                         <img src={edit}/>
                                     </button>
                                     <button
                                         type="button"
-                                        className={styles.task_action_button}
-                                        onClick={() => openDeleteTaskForm(todayTasks.id, todayTasks.title, 'today')}
+                                        className={styles.reminder_action_button}
+                                        onClick={() => openDeleteReminderForm(todayReminder.id, todayReminder.title, 'today')}
                                     >
                                         <img src={deleteIcon}/>
                                     </button>
                                 </div>
-                                <div className={styles.task_line} />
+                                <div className={styles.reminder_line} />
                             </div>
                         ))}
 
                         {selectedView === 'upcoming' && !upcomingLoading && (upcomingError || upcomingActionError) && (
                             <p className={styles.items_status}>{upcomingError || upcomingActionError}</p>
                         )}
-                        {selectedView === 'upcoming' && !upcomingLoading && !upcomingError && upcomingTasks.map((upcomingTasks) => (
-                            <div key={upcomingTasks.id} className={styles.task_item}>
+                        {selectedView === 'upcoming' && !upcomingLoading && !upcomingError && upcomingReminders.map((upcomingReminder) => (
+                            <div key={upcomingReminder.id} className={styles.reminder_item}>
                                 <input
                                     type="checkbox"
-                                    className={styles.task_checkbox}
-                                    checked={upcomingTasks.completed}
-                                    onChange={(event) => handleToggleTask(upcomingTasks.id, event.target.checked, 'upcoming')}
+                                    className={styles.reminder_checkbox}
+                                    checked={upcomingReminder.completed}
+                                    onChange={(event) => handleToggleReminder(upcomingReminder.id, event.target.checked, 'upcoming')}
                                 />
-                                <div className={styles.task_content}>
-                                    <div className={styles.task_title_row}>
-                                        <span className={styles.task_text}>{upcomingTasks.title}</span>
-                                        {getPriorityImage(upcomingTasks.priority) && (
+                                <div className={styles.reminder_content}>
+                                    <div className={styles.reminder_title_row}>
+                                        <span className={styles.reminder_text}>{upcomingReminder.title}</span>
+                                        {getPriorityImage(upcomingReminder.priority) && (
                                             <img
                                                 className={styles.priority_icon}
-                                                src={getPriorityImage(upcomingTasks.priority)}
+                                                src={getPriorityImage(upcomingReminder.priority)}
                                             />
                                         )}
                                     </div>
-                                    {formatTaskTime(upcomingTasks.start_at, upcomingTasks.end_at) && (
-                                        <div className={styles.task_time}>
+                                    {formatReminderTime(upcomingReminder.start_at) && (
+                                        <div className={styles.reminder_time}>
                                             <img src={clock} />
-                                            <span>{formatTaskTime(upcomingTasks.start_at, upcomingTasks.end_at)}</span>
+                                            <span>{formatReminderTime(upcomingReminder.start_at)}</span>
                                         </div>
                                     )}
                                 </div>
-                                <div className={styles.task_actions}>
+                                <div className={styles.reminder_actions}>
                                     <button
                                         type="button"
-                                        className={styles.task_action_button}
-                                        onClick={() => openEditTaskForm(upcomingTasks.id)}
+                                        className={styles.reminder_action_button}
+                                        onClick={() => openEditReminderForm(upcomingReminder.id)}
                                     >
                                         <img src={edit} />
                                     </button>
                                     <button
                                         type="button"
-                                        className={styles.task_action_button}
-                                        onClick={() => openDeleteTaskForm(upcomingTasks.id, upcomingTasks.title, 'upcoming')}
+                                        className={styles.reminder_action_button}
+                                        onClick={() => openDeleteReminderForm(upcomingReminder.id, upcomingReminder.title, 'upcoming')}
                                     >
                                         <img src={deleteIcon} />
                                     </button>
                                 </div>
-                                <div className={styles.task_line} />
+                                <div className={styles.reminder_line} />
                             </div>
                         ))}
 
@@ -529,45 +522,45 @@ function TaskManagement() {
                         {selectedView === 'folder' && !folderLoading && folderActionError && (
                             <p className={styles.items_status}>{folderActionError}</p>
                         )}
-                        {selectedView === 'folder' && !folderLoading && !folderError && folderItems.map((folderTask) => (
-                            <div key={folderTask.id} className={styles.task_item}>
+                        {selectedView === 'folder' && !folderLoading && !folderError && folderItems.map((folderReminder) => (
+                            <div key={folderReminder.id} className={styles.reminder_item}>
                                 <input
                                     type="checkbox"
-                                    className={styles.task_checkbox}
-                                    checked={folderTask.completed}
-                                    onChange={(event) => handleToggleTask(folderTask.id, event.target.checked, 'folder')}
+                                    className={styles.reminder_checkbox}
+                                    checked={folderReminder.completed}
+                                    onChange={(event) => handleToggleReminder(folderReminder.id, event.target.checked, 'folder')}
                                 />
-                                <div className={styles.task_content}>
-                                    <div className={styles.task_title_row}>
-                                        <span className={styles.task_text}>{folderTask.title}</span>
-                                        {getPriorityImage(folderTask.priority) && (
-                                            <img className={styles.priority_icon} src={getPriorityImage(folderTask.priority)} />
+                                <div className={styles.reminder_content}>
+                                    <div className={styles.reminder_title_row}>
+                                        <span className={styles.reminder_text}>{folderReminder.title}</span>
+                                        {getPriorityImage(folderReminder.priority) && (
+                                            <img className={styles.priority_icon} src={getPriorityImage(folderReminder.priority)} />
                                         )}
                                     </div>
-                                    {formatTaskTime(folderTask.start_at, folderTask.end_at) && (
-                                        <div className={styles.task_time}>
+                                    {formatReminderTime(folderReminder.start_at) && (
+                                        <div className={styles.reminder_time}>
                                             <img src={clock}/>
-                                            <span>{formatTaskTime(folderTask.start_at, folderTask.end_at)}</span>
+                                            <span>{formatReminderTime(folderReminder.start_at)}</span>
                                         </div>
                                     )}
                                 </div>
-                                <div className={styles.task_actions}>
+                                <div className={styles.reminder_actions}>
                                     <button
                                         type="button"
-                                        className={styles.task_action_button}
-                                        onClick={() => openEditTaskForm(folderTask.id)}
+                                        className={styles.reminder_action_button}
+                                        onClick={() => openEditReminderForm(folderReminder.id)}
                                     >
-                                        <img src={edit} alt="Edit task" />
+                                        <img src={edit} />
                                     </button>
                                     <button
                                         type="button"
-                                        className={styles.task_action_button}
-                                        onClick={() => openDeleteTaskForm(folderTask.id, folderTask.title, 'folder')}
+                                        className={styles.reminder_action_button}
+                                        onClick={() => openDeleteReminderForm(folderReminder.id, folderReminder.title, 'folder')}
                                     >
-                                        <img src={deleteIcon} alt="Delete task" />
+                                        <img src={deleteIcon}/>
                                     </button>
                                 </div>
-                                <div className={styles.task_line} />
+                                <div className={styles.reminder_line} />
                             </div>
                         ))}
                     </div>
@@ -577,10 +570,10 @@ function TaskManagement() {
             {showForm && (
                 <NewTaskForm
                     initialType={formType}
-                    folderName={newTaskFolder?.title}
-                    folderId={newTaskFolder?.id}
+                    folderName={newReminderFolder?.title}
+                    folderId={newReminderFolder?.id}
                     onClose={() => setShowForm(false)}
-                    onCreateTask={handleCreateItem}
+                    onCreateTask={handleCreateReminder}
                 />
             )}
             {showFolderForm && (
@@ -598,19 +591,19 @@ function TaskManagement() {
                     onEditFolder={handleEditFolder}
                 />
             )}
-            {showEditTaskForm && selectedEditTaskId !== null && (
+            {showEditReminderForm && selectedEditReminderId !== null && (
                 <EditTaskForm
-                    taskID={selectedEditTaskId}
+                    taskID={selectedEditReminderId}
                     initialType={formType}
-                    onClose={closeEditTaskForm}
-                    onEditTask={handleEditTask}
+                    onClose={closeEditReminderForm}
+                    onEditTask={handleEditReminder}
                 />
             )}
             {deleteTarget && (
                 <DeleteItem
                     title={deleteTarget.title}
                     onClose={() => setDeleteTarget(null)}
-                    onDelete={handleDeleteTask}
+                    onDelete={handleDeleteReminder}
                 />
             )}
             {showDeleteFolderForm && selectedFolder && (
@@ -624,4 +617,4 @@ function TaskManagement() {
     )
 }
 
-export default TaskManagement;
+export default Reminders;

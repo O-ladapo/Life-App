@@ -166,29 +166,29 @@ function NewTaskForm({ onClose, initialType, folderName, folderId, onCreateTask 
                             {!entireDay && <input type="time" className={styles.box_input} {...register('startTime')} />}
                         </div>
                     </div>
-
-                    <div className={styles.row_section}>
-                        <label>Ends</label>
-                        <div className={styles.datetime_group}>
-                            <input
-                                type="date"
-                                className={styles.box_input}
-                                {...register('endDate', {
-                                    required: 'End date is required',
-                                    validate: validateEndDateTime,
-                                })}
-                            />
-                            {errors.endDate && <p className={styles.error_text}>{errors.endDate.message}</p>}
-                            {!entireDay && (
+                    { itemType == 'task' && (
+                        <div className={styles.row_section}>
+                            <label>Ends</label>
+                            <div className={styles.datetime_group}>
                                 <input
-                                    type="time"
+                                    type="date"
                                     className={styles.box_input}
-                                    {...register('endTime', { validate: validateEndDateTime })}
+                                    {...register('endDate', {
+                                        required: 'End date is required',
+                                        validate: validateEndDateTime,
+                                    })}
                                 />
-                            )}
+                                {errors.endDate && <p className={styles.error_text}>{errors.endDate.message}</p>}
+                                {!entireDay && (
+                                    <input
+                                        type="time"
+                                        className={styles.box_input}
+                                        {...register('endTime', { validate: validateEndDateTime })}
+                                    />
+                                )}
+                            </div>
                         </div>
-                    </div>
-
+                    )}
                     <div className={styles.row_section}>
                         <label>Recurring</label>
                         <select {...register('recurrenceRule')} className={styles.box_select}>
