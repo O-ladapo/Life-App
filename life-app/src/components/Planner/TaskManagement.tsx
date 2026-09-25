@@ -93,6 +93,7 @@ function TaskManagement() {
     const [folderItems, setFolderItems] = useState<Item[]>([]);
     const [folderLoading, setFolderLoading] = useState(false);
     const [folderError, setFolderError] = useState<string | null>(null);
+    const [folderActionError, setFolderActionError] = useState<string | null>(null);
     const [todayActionError, setTodayActionError] = useState<string | null>(null);
     const [upcomingActionError, setUpcomingActionError] = useState<string | null>(null);
     const folderRequestIdRef = useRef(0);
@@ -182,8 +183,19 @@ function TaskManagement() {
         };
         const createdItem = await createItem(payload);
 
-        if (data.folder_id && selectedFolder?.id === data.folder_id) {
-            setFolderItems((prev) => [...prev, createdItem]);
+        if (data.folder_id) {
+            const selectedFolderMatches = selectedFolder?.id === data.folder_id;
+
+            folderRequestIdRef.current++;
+
+            if (selectedFolderMatches) {
+                setFolderLoading(false);
+                setFolderError(null);
+                setFolderItems((prev) => [
+                    ...prev.filter((item) => item.id !== createdItem.id),
+                    createdItem,
+                ]);
+            }
         }
 
         if (data.folder_id) return;
@@ -200,7 +212,7 @@ function TaskManagement() {
     async function handleToggleTask(itemId: number, completed: boolean, view: 'today' | 'upcoming' | 'folder') {
         if (view === 'today') setTodayActionError(null);
         if (view === 'upcoming') setUpcomingActionError(null);
-        if (view === 'folder') setFolderError(null);
+        if (view === 'folder') setFolderActionError(null);
 
         try {
             const updatedItem = await updateItem(itemId, { completed });
@@ -220,7 +232,7 @@ function TaskManagement() {
             const message = error instanceof Error ? error.message : 'Failed to update task';
             if (view === 'today') setTodayActionError(message);
             if (view === 'upcoming') setUpcomingActionError(message);
-            if (view === 'folder') setFolderError(message);
+            if (view === 'folder') setFolderActionError(message);
         }
     }
 
@@ -513,6 +525,9 @@ function TaskManagement() {
                         {selectedView === 'folder' && folderLoading && null}
                         {selectedView === 'folder' && !folderLoading && folderError && (
                             <p className={styles.items_status}>{folderError}</p>
+                        )}
+                        {selectedView === 'folder' && !folderLoading && folderActionError && (
+                            <p className={styles.items_status}>{folderActionError}</p>
                         )}
                         {selectedView === 'folder' && !folderLoading && !folderError && folderItems.map((folderTask) => (
                             <div key={folderTask.id} className={styles.task_item}>
