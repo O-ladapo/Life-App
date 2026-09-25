@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getUpcomingItemsByDateAndType } from '../../../../api/items';
 import type { Item } from '../ItemType';
 
@@ -14,10 +14,15 @@ export function useUpcomingItemsByDate(date: string, itemType: string) {
         itemType: null,
         error: null,
     });
+    const requestIdRef = useRef(0);
 
     const refetch = useCallback(() => {
+        const requestId = ++requestIdRef.current;
+
         return getUpcomingItemsByDateAndType(date, itemType)
             .then((items) => {
+                if (requestId !== requestIdRef.current) return;
+
                 setState({
                     date,
                     items: items.filter((item: Item) => item.start_at !== null),
@@ -26,6 +31,8 @@ export function useUpcomingItemsByDate(date: string, itemType: string) {
                 });
             })
             .catch((err: unknown) => {
+                if (requestId !== requestIdRef.current) return;
+
                 setState({
                     date,
                     items: [],
@@ -39,6 +46,12 @@ export function useUpcomingItemsByDate(date: string, itemType: string) {
 
     useEffect(() => {
         refetch();
+
+        const effectRequestId = requestIdRef.current;
+
+        return () => {
+            requestIdRef.current = effectRequestId + 1;
+        };
     }, [refetch]);
 
     const isCurrentDate = state.date === date;
