@@ -20,6 +20,7 @@ func runMigrations(databaseURL string) error {
 	if err != nil {
 		return err
 	}
+	defer m.Close()
 	if err := m.Up(); err != nil {
         if err == migrate.ErrNoChange {
             log.Println("No new migrations to apply")
