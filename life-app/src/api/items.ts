@@ -13,7 +13,7 @@ export function getItemsByDate(date: string) {
     return api.get(`/items/by-date?date=${date}`) as Promise<Item[]>;
 }
 
-export function getItemsByDateAndType(date: string, itemType: string) {
+export function getUpcomingItemsByDateAndType(date: string, itemType: string): Promise<Item[]> {
     return api.get(`/items/by-upcoming-date?date=${date}&type=${itemType}`);
 }
 

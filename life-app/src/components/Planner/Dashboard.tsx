@@ -25,7 +25,7 @@ function Dashboard() {
     const [showForm, setShowForm] = useState(false);
     const [formType, setFormType] = useState<'task' | 'reminder'>('task');
     const todayStr = getLocalDateString(new Date());
-    const { items, loading, error, setItems } = useItemsByDate(todayStr);
+    const { items, setItems } = useItemsByDate(todayStr);
 
 
     function openNewTaskForm() {
@@ -45,7 +45,7 @@ function Dashboard() {
             const [year, month, day] = date.split('-').map(Number);
             const [hours, minutes] = (time || '00:00').split(':').map(Number);
             if (entireDay) {
-                return new Date(Date.UTC(year, month - 1, day, 12)).toISOString();
+                return new Date(Date.UTC(year, month - 1, day, 0, 0)).toISOString();
             }
 
             return new Date(Date.UTC(year, month - 1, day, hours, minutes)).toISOString();
@@ -78,8 +78,6 @@ function Dashboard() {
             <div className={styles.date}>
                 {currentDate}
             </div>
-            {loading && <p>Loading...</p>}
-            {error && <p className={styles.error_text}>{error}</p>}
 
             <div className={styles.items_content}>
                 <div>
