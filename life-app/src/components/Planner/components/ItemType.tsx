@@ -1,5 +1,6 @@
 export type Item = {
     id: number;
+    folder_id: number | null;
     title: string;
     type: 'task' | 'reminder';
     description: string | null;

@@ -1,7 +1,7 @@
 import { api } from "./client";
 import type { Item } from '../components/Planner/components/ItemType';
 
-export function getAllItems() {
+export function getAllItems(): Promise<Item[]> {
     return api.get("/items");
 }
 

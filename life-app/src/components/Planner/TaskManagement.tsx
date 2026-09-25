@@ -6,11 +6,16 @@ import low_priority from '../../components/assets/low_priority.png';
 import medium_priority from '../../components/assets/medium_priority.png';
 import high_priority from '../../components/assets/high_priority.png';
 import clock from '../../components/assets/clock.png';
+import edit from '../../components/assets/edit.png';
+import deleteIcon from '../../components/assets/delete.png';
 import NewTaskForm, { type NewTaskFormData } from './components/NewItem/NewItem';
 import NewFolderForm, { type NewFolderFormData } from './components/NewFolder/NewFolder';
+import EditTaskForm, { type EditTaskFormData } from './components/EditItem/EditItem';
+import DeleteItem from './components/DeleteItem/DeleteItem';
 import { useItemsByDate } from './components/GetItems/GetItemsByDate';
 import { useUpcomingItemsByDate } from './components/GetItems/GetUpcomingItemsByDate';
-import { createItem } from '../../api/items';
+import type { Item } from './components/ItemType';
+import { createItem, updateItem, deleteItem, getAllItems } from '../../api/items';
 import { useEffect, useState } from 'react';
 import { createFolder, getAllFolders } from '../../api/folders';
 
@@ -74,9 +79,17 @@ function formatTaskTime(startAt: string | null, endAt: string | null): string | 
 function TaskManagement() {
     const [showForm, setShowForm] = useState(false);
     const [showFolderForm, setShowFolderForm] = useState(false);
+    const [showEditTaskForm, setShowEditTaskForm] = useState(false);
+    const [selectedEditTaskId, setSelectedEditTaskId] = useState<number | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string; view: 'today' | 'upcoming' | 'folder' } | null>(null);
+    const [newTaskFolder, setNewTaskFolder] = useState<Folder | null>(null);
     const [formType, setFormType] = useState<'task' | 'reminder'>('task');
     const [folders, setFolders] = useState<Folder[]>([]);
-    const [selectedView, setSelectedView] = useState<'today' | 'upcoming'>('today');
+    const [selectedView, setSelectedView] = useState<'today' | 'upcoming' | 'folder'>('today');
+    const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
+    const [folderItems, setFolderItems] = useState<Item[]>([]);
+    const [folderLoading, setFolderLoading] = useState(false);
+    const [folderError, setFolderError] = useState<string | null>(null);
     const todayStr = getLocalDateString(new Date());
     const {
         items: todayItems,
@@ -91,14 +104,37 @@ function TaskManagement() {
         error: upcomingError,
     } = useUpcomingItemsByDate(todayStr, 'task');
 
-    function openNewTaskForm() {
+    function openNewTaskForm(folder: Folder | null = null) {
         setFormType('task');
+        setNewTaskFolder(folder);
         setShowForm(true);
     }
 
     function openNewFolderForm() {
         setFormType('task');
         setShowFolderForm(true);
+    }
+
+    function openEditTaskForm(itemId: number) {
+        setSelectedEditTaskId(itemId);
+        setShowEditTaskForm(true);
+    }
+
+    async function openFolder(folder: Folder) {
+        setSelectedFolder(folder);
+        setSelectedView('folder');
+        setFolderLoading(true);
+        setFolderError(null);
+
+        try {
+            const items = await getAllItems();
+            setFolderItems(items.filter((item) => item.type === 'task' && item.folder_id === folder.id));
+        } catch (error) {
+            setFolderItems([]);
+            setFolderError(error instanceof Error ? error.message : 'Failed to load folder items');
+        } finally {
+            setFolderLoading(false);
+        }
     }
 
     async function handleCreateItem(data: NewTaskFormData  & { type: 'task' | 'reminder' }) {
@@ -116,6 +152,7 @@ function TaskManagement() {
         const payload = {
             title: data.title,
             type: data.type,
+            folder_id: data.folder_id ?? null,
             description: data.description || null,
             priority: data.priority,
             is_recurring: data.recurrenceRule !== 'none',
@@ -127,6 +164,12 @@ function TaskManagement() {
         };
         const createdItem = await createItem(payload);
 
+        if (data.folder_id && selectedFolder?.id === data.folder_id) {
+            setFolderItems((prev) => [...prev, createdItem]);
+        }
+
+        if (data.folder_id) return;
+
         const createdStartDate = createdItem.start_at?.slice(0, 10);
 
         if (createdStartDate === todayStr) {
@@ -134,6 +177,92 @@ function TaskManagement() {
         } else if (createdStartDate && createdStartDate > todayStr) {
             await refetchUpcomingItems();
         }
+    }
+
+    async function handleToggleTask(itemId: number, completed: boolean, view: 'today' | 'upcoming' | 'folder') {
+        const updatedItem = await updateItem(itemId, { completed });
+
+        if (view === 'upcoming') {
+            await refetchUpcomingItems();
+            return;
+        }
+
+        if (view === 'folder') {
+            setFolderItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
+            return;
+        }
+
+        setItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
+    }
+
+    function openDeleteTaskForm(itemId: number, title: string, view: 'today' | 'upcoming' | 'folder') {
+        setDeleteTarget({ id: itemId, title, view });
+    }
+
+    async function handleDeleteTask() {
+        if (!deleteTarget) return;
+
+        await deleteItem(deleteTarget.id);
+
+        if (deleteTarget.view === 'upcoming') {
+            await refetchUpcomingItems();
+        } else if (deleteTarget.view === 'folder') {
+            setFolderItems((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+        } else {
+            setItems((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+        }
+
+        setDeleteTarget(null);
+    }
+
+    async function handleEditTask(data: EditTaskFormData) {
+        if (selectedEditTaskId === null) return;
+
+        const buildTimestamp = (date: string, time: string, entireDay: boolean): string | null => {
+            if (!date) return null;
+
+            const [year, month, day] = date.split('-').map(Number);
+            const [hours, minutes] = (time || '00:00').split(':').map(Number);
+            return new Date(Date.UTC(
+                year,
+                month - 1,
+                day,
+                entireDay ? 0 : hours,
+                entireDay ? 0 : minutes,
+            )).toISOString();
+        };
+        const updatedItem = await updateItem(selectedEditTaskId, {
+            title: data.title,
+            description: data.description || null,
+            priority: data.priority,
+            is_recurring: data.recurrenceRule !== 'none',
+            recurrence_rule: data.recurrenceRule !== 'none' ? data.recurrenceRule : null,
+            recurrence_rule_custom: data.recurrenceRule === 'custom' ? data.recurrenceCustom : null,
+            start_at: buildTimestamp(data.startDate, data.startTime, data.entireDay),
+            end_at: buildTimestamp(data.endDate, data.endTime, data.entireDay),
+            email_reminder: data.emailReminder,
+        });
+        const updatedStartDate = updatedItem.start_at?.slice(0, 10);
+
+        if (updatedItem.folder_id !== null) {
+            setFolderItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
+            setItems((prev) => prev.filter((item) => item.id !== updatedItem.id));
+            await refetchUpcomingItems();
+            return;
+        }
+
+        setItems((prev) => {
+            const withoutUpdatedItem = prev.filter((item) => item.id !== updatedItem.id);
+            return updatedStartDate === todayStr
+                ? [...withoutUpdatedItem, updatedItem]
+                : withoutUpdatedItem;
+        });
+        await refetchUpcomingItems();
+    }
+
+    function closeEditTaskForm() {
+        setShowEditTaskForm(false);
+        setSelectedEditTaskId(null);
     }
 
     async function handleCreateFolder(data: NewFolderFormData  & { type: 'task' | 'reminder' }) {
@@ -171,7 +300,7 @@ function TaskManagement() {
                 <div className={styles.card}>
                     <div className={styles.left_section}>
                         <div className={styles.add_task_row}>
-                            <button className={styles.left_section_buttons} onClick={openNewTaskForm}>
+                            <button className={styles.left_section_buttons} onClick={() => openNewTaskForm()}>
                                 <img src={add} width="50" height="50"/>
                             </button>
                             <h2>Add Task</h2>
@@ -191,7 +320,7 @@ function TaskManagement() {
 
                         <div className={styles.folder_list}>
                             {taskFolders.map((f) => (
-                                <button key={f.id} type="button" className={styles.folder_item}>
+                                    <button key={f.id} type="button" className={styles.folder_item} onClick={() => openFolder(f)}>
                                     <span className={styles.folder_bullet}>•</span>
                                     <span>{f.title}</span>
                                 </button>
@@ -206,10 +335,23 @@ function TaskManagement() {
                         </div>
                     </div>
                     <div className={styles.right_section}>
-                        <div className={styles.right_section_header}>
-                            <h2 className={styles.right_section_title}>
-                                {selectedView === 'today' ? 'Today' : 'Upcoming'}
+                        <div className={`${styles.right_section_header} ${selectedView === 'folder' ? styles.folder_section_header : ''}`}>
+                            <h2 className={`${styles.right_section_title} ${selectedView === 'folder' ? styles.folder_section_title : ''}`}>
+                                {selectedView === 'today'
+                                    ? 'Today'
+                                    : selectedView === 'upcoming'
+                                        ? 'Upcoming'
+                                        : selectedFolder?.title}
                             </h2>
+                                {selectedView === 'folder' && selectedFolder && (
+                                    <button
+                                        type="button"
+                                        className={styles.folder_add_task_button}
+                                        onClick={() => openNewTaskForm(selectedFolder)}
+                                    >
+                                        Add Task
+                                    </button>
+                                )}
                         </div>
                         <div className={styles.line} />
 
@@ -218,7 +360,12 @@ function TaskManagement() {
                         )}
                         {selectedView === 'today' && !todayLoading && !todayError && tasks.map((todayTasks) => (
                             <div key={todayTasks.id} className={styles.task_item}>
-                                <input type="checkbox" className={styles.task_checkbox} />
+                                <input
+                                    type="checkbox"
+                                    className={styles.task_checkbox}
+                                    checked={todayTasks.completed}
+                                    onChange={(event) => handleToggleTask(todayTasks.id, event.target.checked, 'today')}
+                                />
                                 <div className={styles.task_content}>
                                     <div className={styles.task_title_row}>
                                         <span className={styles.task_text}>{todayTasks.title}</span>
@@ -236,6 +383,18 @@ function TaskManagement() {
                                         </div>
                                     )}
                                 </div>
+                                <div className={styles.task_actions}>
+                                    <button type="button" className={styles.task_action_button} onClick={() => openEditTaskForm(todayTasks.id)}>
+                                        <img src={edit}/>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={styles.task_action_button}
+                                        onClick={() => openDeleteTaskForm(todayTasks.id, todayTasks.title, 'today')}
+                                    >
+                                        <img src={deleteIcon}/>
+                                    </button>
+                                </div>
                                 <div className={styles.task_line} />
                             </div>
                         ))}
@@ -245,7 +404,12 @@ function TaskManagement() {
                         )}
                         {selectedView === 'upcoming' && !upcomingLoading && !upcomingError && upcomingTasks.map((upcomingTasks) => (
                             <div key={upcomingTasks.id} className={styles.task_item}>
-                                <input type="checkbox" className={styles.task_checkbox} />
+                                <input
+                                    type="checkbox"
+                                    className={styles.task_checkbox}
+                                    checked={upcomingTasks.completed}
+                                    onChange={(event) => handleToggleTask(upcomingTasks.id, event.target.checked, 'upcoming')}
+                                />
                                 <div className={styles.task_content}>
                                     <div className={styles.task_title_row}>
                                         <span className={styles.task_text}>{upcomingTasks.title}</span>
@@ -258,10 +422,72 @@ function TaskManagement() {
                                     </div>
                                     {formatTaskTime(upcomingTasks.start_at, upcomingTasks.end_at) && (
                                         <div className={styles.task_time}>
-                                            <img src={clock} alt="" />
+                                            <img src={clock} />
                                             <span>{formatTaskTime(upcomingTasks.start_at, upcomingTasks.end_at)}</span>
                                         </div>
                                     )}
+                                </div>
+                                <div className={styles.task_actions}>
+                                    <button
+                                        type="button"
+                                        className={styles.task_action_button}
+                                        onClick={() => openEditTaskForm(upcomingTasks.id)}
+                                    >
+                                        <img src={edit} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={styles.task_action_button}
+                                        onClick={() => openDeleteTaskForm(upcomingTasks.id, upcomingTasks.title, 'upcoming')}
+                                    >
+                                        <img src={deleteIcon} />
+                                    </button>
+                                </div>
+                                <div className={styles.task_line} />
+                            </div>
+                        ))}
+
+                        {selectedView === 'folder' && folderLoading && null}
+                        {selectedView === 'folder' && !folderLoading && folderError && (
+                            <p className={styles.items_status}>{folderError}</p>
+                        )}
+                        {selectedView === 'folder' && !folderLoading && !folderError && folderItems.map((folderTask) => (
+                            <div key={folderTask.id} className={styles.task_item}>
+                                <input
+                                    type="checkbox"
+                                    className={styles.task_checkbox}
+                                    checked={folderTask.completed}
+                                    onChange={(event) => handleToggleTask(folderTask.id, event.target.checked, 'folder')}
+                                />
+                                <div className={styles.task_content}>
+                                    <div className={styles.task_title_row}>
+                                        <span className={styles.task_text}>{folderTask.title}</span>
+                                        {getPriorityImage(folderTask.priority) && (
+                                            <img className={styles.priority_icon} src={getPriorityImage(folderTask.priority)} />
+                                        )}
+                                    </div>
+                                    {formatTaskTime(folderTask.start_at, folderTask.end_at) && (
+                                        <div className={styles.task_time}>
+                                            <img src={clock}/>
+                                            <span>{formatTaskTime(folderTask.start_at, folderTask.end_at)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className={styles.task_actions}>
+                                    <button
+                                        type="button"
+                                        className={styles.task_action_button}
+                                        onClick={() => openEditTaskForm(folderTask.id)}
+                                    >
+                                        <img src={edit} alt="Edit task" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={styles.task_action_button}
+                                        onClick={() => openDeleteTaskForm(folderTask.id, folderTask.title, 'folder')}
+                                    >
+                                        <img src={deleteIcon} alt="Delete task" />
+                                    </button>
                                 </div>
                                 <div className={styles.task_line} />
                             </div>
@@ -273,6 +499,8 @@ function TaskManagement() {
             {showForm && (
                 <NewTaskForm
                     initialType={formType}
+                    folderName={newTaskFolder?.title}
+                    folderId={newTaskFolder?.id}
                     onClose={() => setShowForm(false)}
                     onCreateTask={handleCreateItem}
                 />
@@ -282,6 +510,20 @@ function TaskManagement() {
                     initialType={formType}
                     onClose={() => setShowFolderForm(false)}
                     onCreateFolder={handleCreateFolder}
+                />
+            )}
+            {showEditTaskForm && selectedEditTaskId !== null && (
+                <EditTaskForm
+                    taskID={selectedEditTaskId}
+                    onClose={closeEditTaskForm}
+                    onEditTask={handleEditTask}
+                />
+            )}
+            {deleteTarget && (
+                <DeleteItem
+                    title={deleteTarget.title}
+                    onClose={() => setDeleteTarget(null)}
+                    onDelete={handleDeleteTask}
                 />
             )}
         </div>

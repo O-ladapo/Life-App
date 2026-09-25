@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import styles from './NewItem.module.css';
+import { useEffect, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
+import styles from './EditItem.module.css';
 import cross from '../../../assets/cross.png'
 import check from '../../../assets/check.png'
+import { useItemById } from '../GetItems/GetItemByID';
 
-export type NewTaskFormData = {
-    folder_id?: number;
+export type EditTaskFormData = {
     title: string;
     description?: string;
     priority: string;
@@ -19,16 +19,13 @@ export type NewTaskFormData = {
     emailReminder: boolean;
 };
 
-type NewTaskFormProps = {
+type EditTaskFormProps = {
     onClose: () => void;
-    initialType: 'task' | 'reminder';
-    folderName?: string;
-    folderId?: number;
-    onCreateTask: (data: NewTaskFormData & { type: 'task' | 'reminder' }) => Promise<void>;
+    taskID: number;
+    onEditTask: (data: EditTaskFormData) => Promise<void>;
 };
 
-function NewTaskForm({ onClose, initialType, folderName, folderId, onCreateTask }: NewTaskFormProps) {
-    const [itemType, setItemType] = useState<'task' | 'reminder'>(initialType);
+function EditTaskForm({ onClose, taskID, onEditTask }: EditTaskFormProps) {
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -36,19 +33,57 @@ function NewTaskForm({ onClose, initialType, folderName, folderId, onCreateTask 
         register,
         handleSubmit,
         getValues,
-        watch,
+        control,
+        reset,
         formState: { errors },
-    } = useForm<NewTaskFormData>({
-        defaultValues: {
-            priority: 'none',
-            entireDay: false,
-            recurrenceRule: 'none',
-            emailReminder: false,
-        },
-    });
+    } = useForm<EditTaskFormData>({});
+    const {
+        item,
+        loading,
+        error,
+    } = useItemById(taskID);
 
-    const entireDay = watch('entireDay');
-    const recurrenceRule = watch('recurrenceRule');
+    useEffect(() => {
+        if (!item) return;
+
+        const startDate = item.start_at ? new Date(item.start_at) : null;
+        const endDate = item.end_at ? new Date(item.end_at) : null;
+        const isEntireDay = Boolean(
+            startDate
+            && endDate
+            && startDate.getUTCHours() === 0
+            && startDate.getUTCMinutes() === 0
+            && endDate.getUTCHours() === 0
+            && endDate.getUTCMinutes() === 0,
+        );
+        const formatDate = (date: Date | null) => date
+            ? `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+            : '';
+        const formatTime = (date: Date | null) => date
+            ? `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`
+            : '';
+
+        reset({
+            title: item.title,
+            description: item.description ?? '',
+            priority: item.priority || 'none',
+            startDate: formatDate(startDate),
+            startTime: formatTime(startDate),
+            endDate: formatDate(endDate),
+            endTime: formatTime(endDate),
+            entireDay: isEntireDay,
+            recurrenceRule: item.recurrence_rule ?? 'none',
+            recurrenceCustom: item.recurrence_rule_custom ?? undefined,
+            emailReminder: item.email_reminder,
+        });
+    }, [item, reset]);
+
+    const entireDay = useWatch({ control, name: 'entireDay' });
+    const recurrenceRule = useWatch({ control, name: 'recurrenceRule' });
+
+    if (loading) return null;
+    if (error) return <div className={styles.error_text}>{error}</div>;
+    if (!item) return null;
 
     function validateEndDateTime(): true | string {
         const values = getValues();
@@ -62,14 +97,14 @@ function NewTaskForm({ onClose, initialType, folderName, folderId, onCreateTask 
         return end >= start || 'End time cannot be before start time';
     }
 
-    async function handleCreateTask(data: NewTaskFormData) {
+    async function handleEditTask(data: EditTaskFormData) {
         if (isSubmitting) return;
 
         setIsSubmitting(true);
         setSubmitError(null);
 
         try {
-            await onCreateTask({ ...data, type: itemType, folder_id: folderId });
+            await onEditTask({ ...data });
             onClose();
         } catch (err) {
             setSubmitError(err instanceof Error ? err.message : 'Failed to create item');
@@ -82,39 +117,18 @@ function NewTaskForm({ onClose, initialType, folderName, folderId, onCreateTask 
         <div className={styles.modal_overlay}>
             <form
                 className={styles.modal_box}
-                onSubmit={handleSubmit(handleCreateTask)}
+                onSubmit={handleSubmit(handleEditTask)}
                 onClick={(event) => event.stopPropagation()}
             >
                 <div className={styles.modal_header}>
                     <span className={styles.modal_close} onClick={onClose}><img src={cross} width="34" height="34"/></span>
 
-                    {folderName ? (
-                        <span className={styles.folder_name}>{folderName}</span>
-                    ) : (
-                    <div className={styles.type_toggle}>
-                        <button
-                            type="button"
-                            className={itemType === 'task' ? `${styles.toggle_button} ${styles.active}` : styles.toggle_button}
-                            onClick={() => setItemType('task')}
-                        >
-                            Task
-                        </button>
-                        <button
-                            type="button"
-                            className={itemType === 'reminder' ? `${styles.toggle_button} ${styles.active}` : styles.toggle_button}
-                            onClick={() => setItemType('reminder')}
-                        >
-                            Reminder
-                        </button>
-                    </div>
-                    )}
+                    <h2 className={styles.modal_title}>Edit</h2>
 
                     <button type="submit" className={styles.confirm_button} disabled={isSubmitting}>
                         <img src={check} width="34" height="44"/>
                     </button>
                 </div>
-
-                <h2 className={styles.modal_title}>New</h2>
 
                 {submitError && <p className={styles.error_text}>{submitError}</p>}
 
@@ -223,7 +237,7 @@ function NewTaskForm({ onClose, initialType, folderName, folderId, onCreateTask 
                         <p className={styles.error_text}>{errors.recurrenceCustom.message}</p>
                     )}
 
-                    {itemType === 'reminder' && (
+                    {item.type === 'reminder' && (
                         <div className={styles.row_section}>
                             <label>Email Reminder</label>
                             <label className={styles.switch}>
@@ -238,4 +252,4 @@ function NewTaskForm({ onClose, initialType, folderName, folderId, onCreateTask 
     );
 }
 
-export default NewTaskForm;
+export default EditTaskForm;

@@ -119,6 +119,7 @@ func GetItemsByDate(pool *pgxpool.Pool, startUTC time.Time, endUTC time.Time, us
 		  AND start_at IS NOT NULL
 		  AND start_at >= $2
 		  AND start_at < $3
+		  AND folder_id IS NULL
 		ORDER BY start_at`, userID, startUTC, endUTC)
 	if err != nil {
 		return nil, err
@@ -164,7 +165,7 @@ func GetUpcomingItemsByDateAndType(pool *pgxpool.Pool, date time.Time, itemType 
 	rows, err := pool.Query(ctx, `
 		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
 		FROM items
-		WHERE user_id = $1 AND start_at >= $2 AND type = $3
+		WHERE user_id = $1 AND start_at >= $2 AND type = $3 AND folder_id IS NULL
 		ORDER BY start_at`, userID, upcomingStart, itemType)
 	if err != nil {
 		return nil, err
