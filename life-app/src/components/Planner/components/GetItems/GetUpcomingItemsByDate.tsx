@@ -33,19 +33,21 @@ export function useUpcomingItemsByDate(date: string, itemType: string) {
             .catch((err: unknown) => {
                 if (requestId !== requestIdRef.current) return;
 
+                const error = err instanceof Error
+                    ? err
+                    : new Error('Failed to load items');
                 setState({
                     date,
                     items: [],
                     itemType,
-                    error: err instanceof Error
-                        ? err.message
-                        : 'Failed to load items',
+                    error: error.message,
                 });
+                throw error;
             });
     }, [date, itemType]);
 
     useEffect(() => {
-        refetch();
+        refetch().catch(() => undefined);
 
         const effectRequestId = requestIdRef.current;
 

@@ -107,7 +107,7 @@ function EditTaskForm({ onClose, taskID, onEditTask }: EditTaskFormProps) {
             await onEditTask({ ...data });
             onClose();
         } catch (err) {
-            setSubmitError(err instanceof Error ? err.message : 'Failed to create item');
+            setSubmitError(err instanceof Error ? err.message : 'Failed to edit item');
         } finally {
             setIsSubmitting(false);
         }

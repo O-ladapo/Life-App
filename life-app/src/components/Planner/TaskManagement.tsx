@@ -10,14 +10,15 @@ import edit from '../../components/assets/edit.png';
 import deleteIcon from '../../components/assets/delete.png';
 import NewTaskForm, { type NewTaskFormData } from './components/NewItem/NewItem';
 import NewFolderForm, { type NewFolderFormData } from './components/NewFolder/NewFolder';
+import EditFolder, { type EditFolderFormData } from './components/EditFolder/EditFolder';
 import EditTaskForm, { type EditTaskFormData } from './components/EditItem/EditItem';
 import DeleteItem from './components/DeleteItem/DeleteItem';
 import { useItemsByDate } from './components/GetItems/GetItemsByDate';
 import { useUpcomingItemsByDate } from './components/GetItems/GetUpcomingItemsByDate';
 import type { Item } from './components/ItemType';
 import { createItem, updateItem, deleteItem, getAllItems } from '../../api/items';
-import { useEffect, useState } from 'react';
-import { createFolder, getAllFolders } from '../../api/folders';
+import { useEffect, useRef, useState } from 'react';
+import { createFolder, getAllFolders, updateFolder, deleteFolder } from '../../api/folders';
 
 type Folder = {
     id: number;
@@ -82,7 +83,9 @@ function TaskManagement() {
     const [showEditTaskForm, setShowEditTaskForm] = useState(false);
     const [selectedEditTaskId, setSelectedEditTaskId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string; view: 'today' | 'upcoming' | 'folder' } | null>(null);
+    const [showDeleteFolderForm, setShowDeleteFolderForm] = useState(false);
     const [newTaskFolder, setNewTaskFolder] = useState<Folder | null>(null);
+    const [showEditFolderForm, setShowEditFolderForm] = useState(false);
     const [formType, setFormType] = useState<'task' | 'reminder'>('task');
     const [folders, setFolders] = useState<Folder[]>([]);
     const [selectedView, setSelectedView] = useState<'today' | 'upcoming' | 'folder'>('today');
@@ -90,6 +93,9 @@ function TaskManagement() {
     const [folderItems, setFolderItems] = useState<Item[]>([]);
     const [folderLoading, setFolderLoading] = useState(false);
     const [folderError, setFolderError] = useState<string | null>(null);
+    const [todayActionError, setTodayActionError] = useState<string | null>(null);
+    const [upcomingActionError, setUpcomingActionError] = useState<string | null>(null);
+    const folderRequestIdRef = useRef(0);
     const todayStr = getLocalDateString(new Date());
     const {
         items: todayItems,
@@ -115,12 +121,18 @@ function TaskManagement() {
         setShowFolderForm(true);
     }
 
+    function openEditFolderForm() {
+        if (selectedFolder) setShowEditFolderForm(true);
+    }
+
     function openEditTaskForm(itemId: number) {
         setSelectedEditTaskId(itemId);
         setShowEditTaskForm(true);
     }
 
     async function openFolder(folder: Folder) {
+        const requestId = ++folderRequestIdRef.current;
+
         setSelectedFolder(folder);
         setSelectedView('folder');
         setFolderLoading(true);
@@ -128,12 +140,18 @@ function TaskManagement() {
 
         try {
             const items = await getAllItems();
+            if (requestId !== folderRequestIdRef.current) return;
+
             setFolderItems(items.filter((item) => item.type === 'task' && item.folder_id === folder.id));
         } catch (error) {
+            if (requestId !== folderRequestIdRef.current) return;
+
             setFolderItems([]);
             setFolderError(error instanceof Error ? error.message : 'Failed to load folder items');
         } finally {
-            setFolderLoading(false);
+            if (requestId === folderRequestIdRef.current) {
+                setFolderLoading(false);
+            }
         }
     }
 
@@ -180,19 +198,30 @@ function TaskManagement() {
     }
 
     async function handleToggleTask(itemId: number, completed: boolean, view: 'today' | 'upcoming' | 'folder') {
-        const updatedItem = await updateItem(itemId, { completed });
+        if (view === 'today') setTodayActionError(null);
+        if (view === 'upcoming') setUpcomingActionError(null);
+        if (view === 'folder') setFolderError(null);
 
-        if (view === 'upcoming') {
-            await refetchUpcomingItems();
-            return;
+        try {
+            const updatedItem = await updateItem(itemId, { completed });
+
+            if (view === 'upcoming') {
+                await refetchUpcomingItems();
+                return;
+            }
+
+            if (view === 'folder') {
+                setFolderItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
+                return;
+            }
+
+            setItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to update task';
+            if (view === 'today') setTodayActionError(message);
+            if (view === 'upcoming') setUpcomingActionError(message);
+            if (view === 'folder') setFolderError(message);
         }
-
-        if (view === 'folder') {
-            setFolderItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
-            return;
-        }
-
-        setItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
     }
 
     function openDeleteTaskForm(itemId: number, title: string, view: 'today' | 'upcoming' | 'folder') {
@@ -274,6 +303,24 @@ function TaskManagement() {
         setFolders((prev) => [...prev, createdFolder]);
     }
 
+    async function handleEditFolder(data: EditFolderFormData) {
+        if (!selectedFolder) return;
+
+        const updatedFolder = await updateFolder(selectedFolder.id, { title: data.title }) as Folder;
+        setFolders((prev) => prev.map((folder) => folder.id === updatedFolder.id ? updatedFolder : folder));
+        setSelectedFolder(updatedFolder);
+    }
+
+    async function handleDeleteFolder() {
+        if (!selectedFolder) return;
+
+        await deleteFolder(selectedFolder.id);
+        setFolders((prev) => prev.filter((folder) => folder.id !== selectedFolder.id));
+        setSelectedFolder(null);
+        setFolderItems([]);
+        setSelectedView('today');
+    }
+
     useEffect(() => {
         async function loadFolders() {
             try {
@@ -344,19 +391,35 @@ function TaskManagement() {
                                         : selectedFolder?.title}
                             </h2>
                                 {selectedView === 'folder' && selectedFolder && (
-                                    <button
-                                        type="button"
-                                        className={styles.folder_add_task_button}
-                                        onClick={() => openNewTaskForm(selectedFolder)}
-                                    >
-                                        Add Task
-                                    </button>
+                                    <div className={styles.folder_header_actions}>
+                                        <button
+                                            type="button"
+                                            className={styles.folder_add_task_button}
+                                            onClick={() => openNewTaskForm(selectedFolder)}
+                                        >
+                                            Add Task
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={styles.folder_add_task_button}
+                                            onClick={openEditFolderForm}
+                                        >
+                                            Edit Folder
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={styles.folder_add_task_button}
+                                            onClick={() => setShowDeleteFolderForm(true)}
+                                        >
+                                            Delete Folder
+                                        </button>
+                                    </div>
                                 )}
                         </div>
                         <div className={styles.line} />
 
-                        {selectedView === 'today' && !todayLoading && todayError && (
-                            <p className={styles.items_status}>{todayError}</p>
+                        {selectedView === 'today' && !todayLoading && (todayError || todayActionError) && (
+                            <p className={styles.items_status}>{todayError || todayActionError}</p>
                         )}
                         {selectedView === 'today' && !todayLoading && !todayError && tasks.map((todayTasks) => (
                             <div key={todayTasks.id} className={styles.task_item}>
@@ -399,8 +462,8 @@ function TaskManagement() {
                             </div>
                         ))}
 
-                        {selectedView === 'upcoming' && !upcomingLoading && upcomingError && (
-                            <p className={styles.items_status}>{upcomingError}</p>
+                        {selectedView === 'upcoming' && !upcomingLoading && (upcomingError || upcomingActionError) && (
+                            <p className={styles.items_status}>{upcomingError || upcomingActionError}</p>
                         )}
                         {selectedView === 'upcoming' && !upcomingLoading && !upcomingError && upcomingTasks.map((upcomingTasks) => (
                             <div key={upcomingTasks.id} className={styles.task_item}>
@@ -512,6 +575,14 @@ function TaskManagement() {
                     onCreateFolder={handleCreateFolder}
                 />
             )}
+            {showEditFolderForm && selectedFolder && (
+                <EditFolder
+                    key={selectedFolder.id}
+                    title={selectedFolder.title}
+                    onClose={() => setShowEditFolderForm(false)}
+                    onEditFolder={handleEditFolder}
+                />
+            )}
             {showEditTaskForm && selectedEditTaskId !== null && (
                 <EditTaskForm
                     taskID={selectedEditTaskId}
@@ -524,6 +595,13 @@ function TaskManagement() {
                     title={deleteTarget.title}
                     onClose={() => setDeleteTarget(null)}
                     onDelete={handleDeleteTask}
+                />
+            )}
+            {showDeleteFolderForm && selectedFolder && (
+                <DeleteItem
+                    title={selectedFolder.title}
+                    onClose={() => setShowDeleteFolderForm(false)}
+                    onDelete={handleDeleteFolder}
                 />
             )}
         </div>

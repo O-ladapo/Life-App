@@ -1,0 +1,70 @@
+.modal_overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal_box {
+    position: relative;
+    width: 500px;
+    max-width: 90%;
+    padding: 24px;
+    background: #1E1E1E;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal_close,
+.confirm_button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.modal_title {
+    margin: 0;
+    color: white;
+    font-size: 24px;
+    font-weight: normal;
+    text-align: center;
+}
+
+.info_section {
+    padding: 16px;
+    background: #4B4B4B;
+    border-radius: 12px;
+}
+
+.title_input {
+    width: 100%;
+    box-sizing: border-box;
+    padding-bottom: 8px;
+    color: white;
+    background: transparent;
+    border: none;
+    border-bottom: 0.5px solid #FFFFFF;
+    font-size: 18px;
+}
+
+.error_text {
+    margin: 0;
+    color: red;
+    font-size: 14px;
+}
