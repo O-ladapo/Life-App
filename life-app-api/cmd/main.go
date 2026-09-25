@@ -7,9 +7,30 @@ import (
 	"life_app_api/internal/handlers"
 	"log"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
+
+func runMigrations(databaseURL string) error {
+	m, err := migrate.New("file://migrations", databaseURL)
+	if err != nil {
+		return err
+	}
+	defer m.Close()
+	if err := m.Up(); err != nil {
+        if err == migrate.ErrNoChange {
+            log.Println("No new migrations to apply")
+            return nil
+        }
+        return err
+    }
+    log.Println("Migrations applied successfully")
+    return nil
+}
 
 func main() {
 	cfg, err := config.Load()
@@ -23,6 +44,10 @@ func main() {
 	}
 
 	defer pool.Close()
+
+	if err := runMigrations(cfg.DatabaseURL); err != nil {
+		log.Fatal("Failed to run migrations: ", err)
+	}
 
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
