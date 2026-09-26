@@ -163,6 +163,7 @@ function Reminders() {
         }
         const payload = {
             title: data.title,
+            type: data.type,
             folder_id: data.folder_id ?? null,
             description: data.description || null,
             priority: data.priority,
