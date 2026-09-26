@@ -59,6 +59,15 @@ func CreateItem(pool *pgxpool.Pool, title string, itemType string, opts CreateIt
 		return nil, err
 	}
 
+	if opts.EmailReminder {
+		_, err := pool.Exec(ctx, `
+		INSERT INTO email_reminders (user_id, reminder_id, is_recurring)
+		VALUES ($1, $2, $3)`, userID, item.ID, opts.IsRecurring)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &item, nil
 }
 
@@ -305,6 +314,13 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID strin
 	}
 	if opts.IsRecurring != nil {
 		if !*opts.IsRecurring {
+			_, err := pool.Exec(ctx, `
+			UPDATE email_reminders 
+			SET is_recurring = $3
+			WHERE user_id = $1 AND reminder_id = $2`, userID, id, *opts.IsRecurring)
+			if err != nil {
+				return nil, err
+			}
 			addClause("recurrence_rule", nil)
 			addClause("recurrence_rule_custom", nil)
 		} else {
@@ -324,6 +340,24 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID strin
 		addClause("end_at", *opts.EndAt)
 	}
 	if opts.EmailReminder != nil {
+		if *opts.EmailReminder {
+			_, err := pool.Exec(ctx, `
+			INSERT INTO email_reminders (user_id, reminder_id, is_recurring)
+			VALUES ($1, $2, $3)`, userID, id, *opts.IsRecurring)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			commandTag, err := pool.Exec(ctx, `
+			DELETE FROM email_reminders
+			WHERE reminder_id = $1 AND user_id = $2`, id, userID)
+			if err != nil {
+				return nil, err
+			}
+			if commandTag.RowsAffected() == 0 {
+				return nil, fmt.Errorf("Item with id %d not found. When trying to delete from email_reminders", id)
+			}
+		}
 		addClause("email_reminder", *opts.EmailReminder)
 	}
 
@@ -404,6 +438,11 @@ func check_recurring(items []models.Item, currentDate time.Time, rows pgx.Rows) 
 			if item.StartAt.Day() == currentDate.Day() {
 				items = append(items, item)
 			}
+			lastDayOfCurrentMonth := time.Date(currentDate.Year(), currentDate.Month()+1, 0, 0, 0, 0, 0, time.UTC).Day()
+			if item.StartAt.Day() > lastDayOfCurrentMonth && currentDate.Day() == lastDayOfCurrentMonth {
+				items = append(items, item)
+			}
+			continue
 		case "yearly":
 			if (item.StartAt.Day() == currentDate.Day()) && (item.StartAt.Month() == currentDate.Month()) {
 				items = append(items, item)
@@ -421,4 +460,42 @@ func check_recurring(items []models.Item, currentDate time.Time, rows pgx.Rows) 
 		}
 	}
 	return items, nil
+}
+
+func CheckRecurringDateByReminder(reminder models.Item, currentDay time.Time, startDay time.Time) bool {
+
+	if currentDay.Before(startDay) {
+		return false
+	}
+
+	switch *reminder.RecurrenceRule {
+	case "daily":
+		return true
+
+	case "weekly":
+		return startDay.Weekday() == currentDay.Weekday()
+
+	case "monthly":
+		if startDay.Day() == currentDay.Day() {
+			return true
+		}
+		lastDayOfCurrentMonth := time.Date(currentDay.Year(), currentDay.Month()+1, 0, 0, 0, 0, 0, time.UTC).Day()
+		if startDay.Day() > lastDayOfCurrentMonth && currentDay.Day() == lastDayOfCurrentMonth {
+			return true
+		}
+		return false
+
+	case "yearly":
+		return startDay.Day() == currentDay.Day() && startDay.Month() == currentDay.Month()
+
+	case "custom":
+		if reminder.RecurrenceRuleCustom == nil || *reminder.RecurrenceRuleCustom <= 0 {
+			return false
+		}
+		daysSince := int(currentDay.Sub(startDay) / (24 * time.Hour))
+		return daysSince%*reminder.RecurrenceRuleCustom == 0
+
+	default:
+		return false
+	}
 }

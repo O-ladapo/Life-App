@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS email_reminders (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reminder_id INT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    sent_at TIMESTAMP,
+    is_recurring BOOLEAN DEFAULT FALSE
+);

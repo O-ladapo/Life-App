@@ -1,6 +1,10 @@
 package email
 
-import "fmt"
+import (
+	"fmt"
+	"life_app_api/internal/models"
+	"strings"
+)
 
 func emailWrapper(frontendURL, bodyContent string) string {
 	return fmt.Sprintf(`
@@ -30,5 +34,37 @@ func PasswordResetEmailHTML(frontendURL, resetURL string) string {
 			Reset Password
 		</a>
 	`, resetURL)
+	return emailWrapper(frontendURL, body)
+}
+
+func ReminderEmailHTML(frontendURL string, reminders []models.Item) string {
+	var reminderListHTML strings.Builder
+
+	for _, reminder := range reminders {
+		fmt.Fprintf(&reminderListHTML, `
+            <div style="background-color:#0A002D;border-radius:8px;padding:12px 16px;margin-bottom:8px;">
+                <p style="color:#FFFFFF;font-size:16px;font-weight:bold;margin:0;">%s</p>
+        `, reminder.Title)
+
+		if reminder.StartAt != nil {
+			var formattedTime string
+			if reminder.StartAt.Hour() == 0 && reminder.StartAt.Minute() == 0 && reminder.StartAt.Second() == 0 {
+    		    formattedTime = ""
+    		} else {
+    		    formattedTime = fmt.Sprintf("Starts: %s", reminder.StartAt.Format("3:04 PM"))
+			fmt.Fprintf(&reminderListHTML, `
+                <p style="color:#cccccc;font-size:14px;margin:4px 0 0;">%s</p>
+            `, formattedTime)
+		}
+		reminderListHTML.WriteString(`</div>`)
+		}
+	}
+
+	body := fmt.Sprintf(`
+        <h1 style="color:#FFFFFF;font-size:28px;font-weight:bold;margin-top:24px;">Here are your reminders for today</h1>
+        <p style="color:#cccccc;font-size:16px;">Here are a list of your reminders:</p>
+        %s
+    `, reminderListHTML.String())
+
 	return emailWrapper(frontendURL, body)
 }

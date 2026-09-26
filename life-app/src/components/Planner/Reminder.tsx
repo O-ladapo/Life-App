@@ -193,13 +193,8 @@ function Reminders() {
 
         if (data.folder_id) return;
 
-        const createdStartDate = createdItem.start_at?.slice(0, 10);
-
-        if (createdStartDate === todayStr) {
-            await refetchItems();
-        } else if (createdStartDate && createdStartDate > todayStr) {
-            await refetchUpcomingItems();
-        }
+        await refetchItems();
+        await refetchUpcomingItems();
     }
 
     async function handleToggleReminder(itemId: number, completed: boolean, view: 'today' | 'upcoming' | 'folder') {
@@ -265,7 +260,7 @@ function Reminders() {
                 entireDay ? 0 : minutes,
             )).toISOString();
         };
-        const updatedItem = await updateItem(selectedEditReminderId, {
+        const updatePayload: Record<string, unknown> = {
             title: data.title,
             description: data.description || null,
             priority: data.priority,
@@ -274,9 +269,14 @@ function Reminders() {
             recurrence_rule_custom: data.recurrenceRule === 'custom' ? data.recurrenceCustom : null,
             start_at: buildTimestamp(data.startDate, data.startTime, data.entireDay),
             end_at: buildTimestamp(data.endDate, data.endTime, data.entireDay),
-            email_reminder: data.emailReminder,
-        });
+        };
 
+        if (data.emailReminder !== undefined) {
+            updatePayload.email_reminder = data.emailReminder;
+        }
+
+        const updatedItem = await updateItem(selectedEditReminderId, updatePayload);
+        
         if (updatedItem.folder_id !== null) {
             setFolderItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
             await refetchItems();

@@ -16,7 +16,7 @@ export type EditTaskFormData = {
     entireDay: boolean;
     recurrenceRule: string;
     recurrenceCustom?: number;
-    emailReminder: boolean;
+    emailReminder?: boolean;
 };
 
 type EditTaskFormProps = {
@@ -108,13 +108,17 @@ function EditTaskForm({ onClose, initialType, taskID, onEditTask }: EditTaskForm
     }
 
     async function handleEditTask(data: EditTaskFormData) {
-        if (isSubmitting) return;
+        if (isSubmitting || !item) return;
 
         setIsSubmitting(true);
         setSubmitError(null);
 
+        const hasEmailReminderChanged = data.emailReminder !== item.email_reminder;
         try {
-            await onEditTask({ ...data });
+            await onEditTask({
+                ...data,
+                emailReminder: hasEmailReminderChanged ? data.emailReminder : undefined,
+            });
             onClose();
         } catch (err) {
             setSubmitError(err instanceof Error ? err.message : 'Failed to edit item');

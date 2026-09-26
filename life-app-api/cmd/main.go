@@ -10,6 +10,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/robfig/cron/v3"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -22,14 +23,14 @@ func runMigrations(databaseURL string) error {
 	}
 	defer m.Close()
 	if err := m.Up(); err != nil {
-        if err == migrate.ErrNoChange {
-            log.Println("No new migrations to apply")
-            return nil
-        }
-        return err
-    }
-    log.Println("Migrations applied successfully")
-    return nil
+		if err == migrate.ErrNoChange {
+			log.Println("No new migrations to apply")
+			return nil
+		}
+		return err
+	}
+	log.Println("Migrations applied successfully")
+	return nil
 }
 
 func main() {
@@ -58,6 +59,18 @@ func main() {
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
 	}))
+
+	c := cron.New()
+
+	c.AddFunc("0 0 * * *", func() {
+		err := handlers.SendDailyEmailReminders(pool, cfg)
+		if err != nil {
+			log.Printf("Error sending daily email reminders: %v", err)
+			return
+		}
+	})
+
+	c.Start()
 
 	protectedItem := router.Group("/items")
 	protectedItem.Use(auth.AuthMiddleWare(cfg))
