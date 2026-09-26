@@ -25,7 +25,7 @@ function Dashboard() {
     const [showForm, setShowForm] = useState(false);
     const [formType, setFormType] = useState<'task' | 'reminder'>('task');
     const todayStr = getLocalDateString(new Date());
-    const { items, setItems, loading, error } = useItemsByDate(todayStr);
+    const { items, refetch: refetchItems, loading, error } = useItemsByDate(todayStr);
 
 
     function openNewTaskForm() {
@@ -65,7 +65,7 @@ function Dashboard() {
         const createdItem = await createItem(payload);
 
         if (createdItem.start_at?.slice(0, 10) === todayStr) {
-            setItems((prev) => [...prev, createdItem]);
+            await refetchItems();
         }
     }
 

@@ -179,6 +179,51 @@ func GetItemsByDate(pool *pgxpool.Pool, startUTC time.Time, endUTC time.Time, us
 		return nil, err
 	}
 
+	if rows.Err() != nil {
+		return nil, err
+	}
+
+	// Gets items that are within the current date
+	rows, err = pool.Query(ctx, `
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
+		FROM items
+		WHERE user_id = $1
+		AND start_at < $2
+		AND start_at IS NOT NULL
+		AND end_at >= $2
+		AND folder_id IS NULL
+		ORDER BY start_at`, userID, startUTC)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item models.Item
+
+		if err := rows.Scan(
+			&item.ID,
+			&item.FolderID,
+			&item.Title,
+			&item.Type,
+			&item.Description,
+			&item.Priority,
+			&item.Completed,
+			&item.IsRecurring,
+			&item.RecurrenceRule,
+			&item.RecurrenceRuleCustom,
+			&item.StartAt,
+			&item.EndAt,
+			&item.EmailReminder,
+			&item.CreatedAt,
+			&item.UserID,
+		); err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
 	return items, rows.Err()
 }
 

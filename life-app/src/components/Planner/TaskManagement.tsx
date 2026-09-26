@@ -100,7 +100,7 @@ function TaskManagement() {
     const todayStr = getLocalDateString(new Date());
     const {
         items: todayItems,
-        setItems,
+        refetch: refetchItems,
         loading: todayLoading,
         error: todayError,
     } = useItemsByDate(todayStr);
@@ -203,7 +203,7 @@ function TaskManagement() {
         const createdStartDate = createdItem.start_at?.slice(0, 10);
 
         if (createdStartDate === todayStr) {
-            setItems((prev) => [...prev, createdItem]);
+            await refetchItems();
         } else if (createdStartDate && createdStartDate > todayStr) {
             await refetchUpcomingItems();
         }
@@ -227,7 +227,7 @@ function TaskManagement() {
                 return;
             }
 
-            setItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
+            await refetchItems();
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to update task';
             if (view === 'today') setTodayActionError(message);
@@ -250,7 +250,7 @@ function TaskManagement() {
         } else if (deleteTarget.view === 'folder') {
             setFolderItems((prev) => prev.filter((item) => item.id !== deleteTarget.id));
         } else {
-            setItems((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+            await refetchItems();
         }
 
         setDeleteTarget(null);
@@ -283,21 +283,15 @@ function TaskManagement() {
             end_at: buildTimestamp(data.endDate, data.endTime, data.entireDay),
             email_reminder: data.emailReminder,
         });
-        const updatedStartDate = updatedItem.start_at?.slice(0, 10);
 
         if (updatedItem.folder_id !== null) {
             setFolderItems((prev) => prev.map((item) => item.id === updatedItem.id ? updatedItem : item));
-            setItems((prev) => prev.filter((item) => item.id !== updatedItem.id));
+            await refetchItems();
             await refetchUpcomingItems();
             return;
         }
 
-        setItems((prev) => {
-            const withoutUpdatedItem = prev.filter((item) => item.id !== updatedItem.id);
-            return updatedStartDate === todayStr
-                ? [...withoutUpdatedItem, updatedItem]
-                : withoutUpdatedItem;
-        });
+        await refetchItems();
         await refetchUpcomingItems();
     }
 

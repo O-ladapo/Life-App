@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getItemsByDate } from '../../../../api/items';
 import type { Item } from '../ItemType';
-import type { SetStateAction } from 'react';
 
 export function useItemsByDate(date: string) {
     const [state, setState] = useState<{
@@ -13,52 +12,53 @@ export function useItemsByDate(date: string) {
         items: [],
         error: null,
     });
+    const requestIdRef = useRef(0);
 
-    useEffect(() => {
-        let cancelled = false;
+    const refetch = useCallback(() => {
+        const requestId = ++requestIdRef.current;
 
-        getItemsByDate(date)
+        return getItemsByDate(date)
             .then((items) => {
-                if (!cancelled) {
-                    setState({
-                        date,
-                        items: items.filter((item) => item.start_at !== null),
-                        error: null,
-                    });
-                }
+                if (requestId !== requestIdRef.current) return; 
+                setState({
+                    date,
+                    items: items.filter((item) => item.start_at !== null),
+                    error: null,
+                });
             })
             .catch((err: unknown) => {
-                if (!cancelled) {
-                    setState({
-                        date,
-                        items: [],
-                        error: err instanceof Error
-                            ? err.message
-                            : 'Failed to load items',
-                    });
-                }
-            });
+                if (requestId !== requestIdRef.current) return; 
 
-        return () => {
-            cancelled = true;
-        };
+                const error = err instanceof Error
+                    ? err
+                    : new Error('Failed to load items');
+                setState({
+                    date,
+                    items: [],
+                    error: err instanceof Error
+                        ? err.message
+                        : 'Failed to load items',
+                });
+                throw error;
+            });
     }, [date]);
 
-    const isCurrentDate = state.date === date;
+    useEffect(() => {
+        refetch().catch(() => undefined);
 
-    const updateItems = (value: SetStateAction<Item[]>) => {
-        setState((previous) => ({
-            ...previous,
-            items: typeof value === 'function'
-                ? value(previous.items)
-                : value,
-        }));
-    };
+        const effectRequestId = requestIdRef.current;
+
+        return () => {
+            requestIdRef.current = effectRequestId + 1;
+        };
+    }, [refetch]);
+
+    const isCurrentDate = state.date === date;
 
     return {
         items: isCurrentDate ? state.items : [],
         loading: !isCurrentDate,
         error: isCurrentDate ? state.error : null,
-        setItems: updateItems,
+        refetch,
     };
 }
