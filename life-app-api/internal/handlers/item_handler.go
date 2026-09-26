@@ -56,6 +56,11 @@ func CreateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
+		if input.StartAt != nil && input.EndAt != nil && input.EndAt.Before(*input.StartAt) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "End date and time cannot be before start date and time"})
+			return
+		}
+
 		priority := "none"
 		if input.Priority != nil {
 			priority = *input.Priority
@@ -91,7 +96,7 @@ func GetAllItemsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		userID := userIDInterface.(string)
-		
+
 		items, err := repository.GetAllItems(pool, userID)
 
 		if err != nil {
@@ -133,6 +138,78 @@ func GetItemByIDHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, item)
+	}
+}
+
+func GetItemsByDateHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
+		dateStr := c.Query("date")
+		if dateStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Date query parameter is required"})
+			return
+		}
+
+		date, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format, expected YYYY-MM-DD"})
+			return
+		}
+
+		startUTC := date
+		endUTC := date.AddDate(0, 0, 1)
+		items, err := repository.GetItemsByDate(pool, startUTC, endUTC, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, items)
+	}
+}
+
+func GetUpcomingItemsByDateAndTypeHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
+		dateStr := c.Query("date")
+		if dateStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Date query parameter is required"})
+			return
+		}
+
+		typeStr := c.Query("type")
+		if typeStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Type query parameter is required"})
+			return
+		}
+
+		date, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format, expected YYYY-MM-DD"})
+			return
+		}
+
+		items, err := repository.GetUpcomingItemsByDateAndType(pool, date, typeStr, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, items)
 	}
 }
 

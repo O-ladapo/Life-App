@@ -4,38 +4,9 @@ import Register from "./components/Register/Register";
 import ErrorPage from "./components/ErrorPage/ErrorPage";
 import Home from "./components/Home/Home"
 import PasswordResetPage from "./components/PasswordResetPage/PasswordResetPage";
-
-function LoginPage() {
-  return (
-  <>
-    <Login/>
-  </>
-  )
-}
-
-function RegisterPage() {
-  return (
-    <>
-      <Register/>
-    </>
-  )
-}
-
-function ErrorPageFunction(){
-  return(
-    <>
-      <ErrorPage/>
-    </>
-  )
-}
-
-function HomePage(){
-  return(
-    <>
-      <Home/>
-    </>
-  )
-}
+import Dashboard from "./components/Planner/Dashboard";
+import TaskManagement from "./components/Planner/TaskManagement";
+import Reminders from "./components/Planner/Reminder"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem("token");
@@ -50,12 +21,15 @@ function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<LoginPage />} />
-        <Route path="/verify" element={<LoginPage />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/verify" element={<Login />} />
         <Route path="/verify-password" element={<PasswordResetPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-        <Route path="*" element={<ErrorPageFunction />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/planner" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/planner/tasks" element={<ProtectedRoute><TaskManagement /></ProtectedRoute>} />
+        <Route path="/planner/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
+        <Route path="*" element={<ErrorPage />} />
       </Routes>
     </>
   )

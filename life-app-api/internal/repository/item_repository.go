@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -108,6 +109,171 @@ func GetItemByID(pool *pgxpool.Pool, id int, userID string) (*models.Item, error
 	return &item, nil
 }
 
+func GetItemsByDate(pool *pgxpool.Pool, startUTC time.Time, endUTC time.Time, userID string) ([]models.Item, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Gets items for the current date
+	rows, err := pool.Query(ctx, `
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
+		FROM items
+		WHERE user_id = $1
+		AND start_at IS NOT NULL
+		AND start_at >= $2
+		AND start_at < $3
+		AND folder_id IS NULL
+		ORDER BY start_at`, userID, startUTC, endUTC)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]models.Item, 0)
+	for rows.Next() {
+		var item models.Item
+
+		if err := rows.Scan(
+			&item.ID,
+			&item.FolderID,
+			&item.Title,
+			&item.Type,
+			&item.Description,
+			&item.Priority,
+			&item.Completed,
+			&item.IsRecurring,
+			&item.RecurrenceRule,
+			&item.RecurrenceRuleCustom,
+			&item.StartAt,
+			&item.EndAt,
+			&item.EmailReminder,
+			&item.CreatedAt,
+			&item.UserID,
+		); err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	if rows.Err() != nil {
+		return nil, err
+	}
+
+	// Gets items that are recurring on the current date
+	rows, err = pool.Query(ctx, `
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
+		FROM items
+		WHERE user_id = $1
+		AND start_at < $2
+		AND start_at IS NOT NULL
+		AND recurrence_rule IS NOT NULL
+		AND folder_id IS NULL
+		ORDER BY start_at`, userID, startUTC)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items, err = check_recurring(items, startUTC, rows)
+	if err != nil {
+		return nil, err
+	}
+
+	if rows.Err() != nil {
+		return nil, err
+	}
+
+	// Gets items that are within the current date
+	rows, err = pool.Query(ctx, `
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
+		FROM items
+		WHERE user_id = $1
+		AND start_at < $2
+		AND start_at IS NOT NULL
+		AND end_at >= $2
+		AND folder_id IS NULL
+		ORDER BY start_at`, userID, startUTC)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item models.Item
+
+		if err := rows.Scan(
+			&item.ID,
+			&item.FolderID,
+			&item.Title,
+			&item.Type,
+			&item.Description,
+			&item.Priority,
+			&item.Completed,
+			&item.IsRecurring,
+			&item.RecurrenceRule,
+			&item.RecurrenceRuleCustom,
+			&item.StartAt,
+			&item.EndAt,
+			&item.EmailReminder,
+			&item.CreatedAt,
+			&item.UserID,
+		); err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	return items, rows.Err()
+}
+
+func GetUpcomingItemsByDateAndType(pool *pgxpool.Pool, date time.Time, itemType string, userID string) ([]models.Item, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	upcomingStart := date.AddDate(0, 0, 1)
+
+	rows, err := pool.Query(ctx, `
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
+		FROM items
+		WHERE user_id = $1 AND start_at >= $2 AND type = $3 AND folder_id IS NULL
+		ORDER BY start_at`, userID, upcomingStart, itemType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]models.Item, 0)
+
+	for rows.Next() {
+		var item models.Item
+
+		if err := rows.Scan(
+			&item.ID,
+			&item.FolderID,
+			&item.Title,
+			&item.Type,
+			&item.Description,
+			&item.Priority,
+			&item.Completed,
+			&item.IsRecurring,
+			&item.RecurrenceRule,
+			&item.RecurrenceRuleCustom,
+			&item.StartAt,
+			&item.EndAt,
+			&item.EmailReminder,
+			&item.CreatedAt,
+			&item.UserID,
+		); err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	return items, rows.Err()
+}
+
 func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID string) (*models.Item, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -138,13 +304,18 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID strin
 		addClause("completed", *opts.Completed)
 	}
 	if opts.IsRecurring != nil {
+		if !*opts.IsRecurring {
+			addClause("recurrence_rule", nil)
+			addClause("recurrence_rule_custom", nil)
+		} else {
+			if opts.RecurrenceRule != nil {
+				addClause("recurrence_rule", *opts.RecurrenceRule)
+			}
+			if opts.RecurrenceRuleCustom != nil {
+				addClause("recurrence_rule_custom", *opts.RecurrenceRuleCustom)
+			}
+		}
 		addClause("is_recurring", *opts.IsRecurring)
-	}
-	if opts.RecurrenceRule != nil {
-		addClause("recurrence_rule", *opts.RecurrenceRule)
-	}
-	if opts.RecurrenceRuleCustom != nil {
-		addClause("recurrence_rule_custom", *opts.RecurrenceRuleCustom)
 	}
 	if opts.StartAt != nil {
 		addClause("start_at", *opts.StartAt)
@@ -197,4 +368,57 @@ func DeleteItem(pool *pgxpool.Pool, id int, userID string) error {
 		return fmt.Errorf("Item with id %d not found", id)
 	}
 	return nil
+}
+
+func check_recurring(items []models.Item, currentDate time.Time, rows pgx.Rows) ([]models.Item, error) {
+	for rows.Next() {
+		var item models.Item
+		if err := rows.Scan(
+			&item.ID,
+			&item.FolderID,
+			&item.Title,
+			&item.Type,
+			&item.Description,
+			&item.Priority,
+			&item.Completed,
+			&item.IsRecurring,
+			&item.RecurrenceRule,
+			&item.RecurrenceRuleCustom,
+			&item.StartAt,
+			&item.EndAt,
+			&item.EmailReminder,
+			&item.CreatedAt,
+			&item.UserID,
+		); err != nil {
+			return nil, err
+		}
+
+		switch *item.RecurrenceRule {
+		case "daily":
+			items = append(items, item)
+		case "weekly":
+			if item.StartAt.Weekday() == currentDate.Weekday() {
+				items = append(items, item)
+			}
+		case "monthly":
+			if item.StartAt.Day() == currentDate.Day() {
+				items = append(items, item)
+			}
+		case "yearly":
+			if (item.StartAt.Day() == currentDate.Day()) && (item.StartAt.Month() == currentDate.Month()) {
+				items = append(items, item)
+			}
+		case "custom":
+			if item.RecurrenceRuleCustom == nil || *item.RecurrenceRuleCustom <= 0 {
+				continue
+			}
+			currentDay := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+			startDay := time.Date(item.StartAt.Year(), item.StartAt.Month(), item.StartAt.Day(), 0, 0, 0, 0, time.UTC)
+			daysSince := int(currentDay.Sub(startDay) / (24 * time.Hour))
+			if daysSince >= 0 && daysSince%*item.RecurrenceRuleCustom == 0 {
+				items = append(items, item)
+			}
+		}
+	}
+	return items, nil
 }
