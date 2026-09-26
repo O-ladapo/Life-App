@@ -155,6 +155,10 @@ func GetItemsByDate(pool *pgxpool.Pool, startUTC time.Time, endUTC time.Time, us
 		items = append(items, item)
 	}
 
+	if rows.Err() != nil {
+		return nil, err
+	}
+
 	// Gets items that are recurring on the current date
 	rows, err = pool.Query(ctx, `
 		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
@@ -168,6 +172,7 @@ func GetItemsByDate(pool *pgxpool.Pool, startUTC time.Time, endUTC time.Time, us
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	items, err = check_recurring(items, startUTC, rows)
 	if err != nil {
@@ -359,7 +364,12 @@ func check_recurring(items []models.Item, currentDate time.Time, rows pgx.Rows) 
 				items = append(items, item)
 			}
 		case "custom":
-			daysSince := int(currentDate.Sub(*item.StartAt).Hours() / 24)
+			if item.RecurrenceRuleCustom == nil || *item.RecurrenceRuleCustom <= 0 {
+				continue
+			}
+			currentDay := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+			startDay := time.Date(item.StartAt.Year(), item.StartAt.Month(), item.StartAt.Day(), 0, 0, 0, 0, time.UTC)
+			daysSince := int(currentDay.Sub(startDay) / (24 * time.Hour))
 			if daysSince >= 0 && daysSince%*item.RecurrenceRuleCustom == 0 {
 				items = append(items, item)
 			}
