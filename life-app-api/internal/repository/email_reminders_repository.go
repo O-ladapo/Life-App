@@ -119,3 +119,28 @@ func GetAllEmailRemindersByUserID(pool *pgxpool.Pool, userID string) (string, []
 
 	return email, reminders, nil
 }
+
+func StoreSentAtTimestamp(pool *pgxpool.Pool, reminders []models.Item) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+	    return err
+	}
+	defer tx.Rollback(ctx)
+	
+	dateStr := time.Now().UTC()
+	for _, reminder := range reminders {
+		_, err := tx.Exec(ctx, `
+		UPDATE email_reminders
+		SET sent_at = $1
+		WHERE reminder_id = $2`, dateStr, reminder.ID)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
+}

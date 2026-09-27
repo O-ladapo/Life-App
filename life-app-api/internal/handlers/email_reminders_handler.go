@@ -33,6 +33,10 @@ func SendDailyEmailReminders(pool *pgxpool.Pool, cfg *config.Config) error {
 			log.Println("Failed to send reminders email:", err)
 			continue
 		}
+		if err := repository.StoreSentAtTimestamp(pool, reminders); err != nil{
+			log.Println("Failed to store the sent_at timestamp:", err)
+			continue
+		}
 	}
 	return nil
 }
