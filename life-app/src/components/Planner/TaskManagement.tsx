@@ -200,13 +200,8 @@ function TaskManagement() {
 
         if (data.folder_id) return;
 
-        const createdStartDate = createdItem.start_at?.slice(0, 10);
-
-        if (createdStartDate === todayStr) {
-            await refetchItems();
-        } else if (createdStartDate && createdStartDate > todayStr) {
-            await refetchUpcomingItems();
-        }
+        await refetchItems();
+        await refetchUpcomingItems();
     }
 
     async function handleToggleTask(itemId: number, completed: boolean, view: 'today' | 'upcoming' | 'folder') {
