@@ -22,13 +22,16 @@ func SendDailyEmailReminders(pool *pgxpool.Pool, cfg *config.Config) error {
 	for _, id := range userIDs {
 		userEmail, reminders, err := repository.GetAllEmailRemindersByUserID(pool, id)
 		if err != nil {
-			return err
+			log.Println("Failed to send reminders email:", err)
+			continue
 		}
-
+		if len(reminders) == 0 {
+			continue
+		}
 		html := email.ReminderEmailHTML(cfg.FrontendURL, reminders)
 		if err := email.SendEmail(cfg.ResendAPIKey, userEmail, "Your Reminders", html); err != nil {
 			log.Println("Failed to send reminders email:", err)
-			return err
+			continue
 		}
 	}
 	return nil

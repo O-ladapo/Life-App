@@ -2,6 +2,7 @@ package email
 
 import (
 	"fmt"
+	"html"
 	"life_app_api/internal/models"
 	"strings"
 )
@@ -44,20 +45,20 @@ func ReminderEmailHTML(frontendURL string, reminders []models.Item) string {
 		fmt.Fprintf(&reminderListHTML, `
             <div style="background-color:#0A002D;border-radius:8px;padding:12px 16px;margin-bottom:8px;">
                 <p style="color:#FFFFFF;font-size:16px;font-weight:bold;margin:0;">%s</p>
-        `, reminder.Title)
+        `, html.EscapeString(reminder.Title))
 
 		if reminder.StartAt != nil {
 			var formattedTime string
 			if reminder.StartAt.Hour() == 0 && reminder.StartAt.Minute() == 0 && reminder.StartAt.Second() == 0 {
-    		    formattedTime = ""
-    		} else {
-    		    formattedTime = fmt.Sprintf("Starts: %s", reminder.StartAt.Format("3:04 PM"))
-			fmt.Fprintf(&reminderListHTML, `
+				formattedTime = ""
+			} else {
+				formattedTime = fmt.Sprintf("Starts: %s", reminder.StartAt.Format("3:04 PM"))
+				fmt.Fprintf(&reminderListHTML, `
                 <p style="color:#cccccc;font-size:14px;margin:4px 0 0;">%s</p>
             `, formattedTime)
+			}
 		}
 		reminderListHTML.WriteString(`</div>`)
-		}
 	}
 
 	body := fmt.Sprintf(`

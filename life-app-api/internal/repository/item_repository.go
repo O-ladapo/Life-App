@@ -48,8 +48,14 @@ func CreateItem(pool *pgxpool.Pool, title string, itemType string, opts CreateIt
 		priority = "none"
 	}
 
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+    	return nil, err
+	}
+	defer tx.Rollback(ctx)
+
 	var item models.Item
-	err := pool.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO items (folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, user_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id`,
@@ -60,12 +66,16 @@ func CreateItem(pool *pgxpool.Pool, title string, itemType string, opts CreateIt
 	}
 
 	if opts.EmailReminder {
-		_, err := pool.Exec(ctx, `
+		_, err = tx.Exec(ctx, `
 		INSERT INTO email_reminders (user_id, reminder_id, is_recurring)
 		VALUES ($1, $2, $3)`, userID, item.ID, opts.IsRecurring)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if err := tx.Commit(ctx); err != nil{
+		return nil, err
 	}
 
 	return &item, nil
@@ -165,7 +175,7 @@ func GetItemsByDate(pool *pgxpool.Pool, startUTC time.Time, endUTC time.Time, us
 	}
 
 	if rows.Err() != nil {
-		return nil, err
+		return nil, rows.Err()
 	}
 
 	// Gets items that are recurring on the current date
@@ -189,7 +199,7 @@ func GetItemsByDate(pool *pgxpool.Pool, startUTC time.Time, endUTC time.Time, us
 	}
 
 	if rows.Err() != nil {
-		return nil, err
+		return nil, rows.Err()
 	}
 
 	// Gets items that are within the current date
@@ -228,6 +238,18 @@ func GetItemsByDate(pool *pgxpool.Pool, startUTC time.Time, endUTC time.Time, us
 			&item.UserID,
 		); err != nil {
 			return nil, err
+		}
+
+		exists := false
+
+		for _, existingItem := range items{
+			if existingItem.ID == item.ID {
+				exists = true
+				break
+			}
+		}
+		if exists {
+			continue
 		}
 
 		items = append(items, item)
@@ -297,6 +319,12 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID strin
 		argPos++
 	}
 
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+    	return nil, err
+	}
+	defer tx.Rollback(ctx)
+
 	if opts.Title != nil {
 		addClause("title", *opts.Title)
 	}
@@ -314,7 +342,7 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID strin
 	}
 	if opts.IsRecurring != nil {
 		if !*opts.IsRecurring {
-			_, err := pool.Exec(ctx, `
+			_, err := tx.Exec(ctx, `
 			UPDATE email_reminders 
 			SET is_recurring = $3
 			WHERE user_id = $1 AND reminder_id = $2`, userID, id, *opts.IsRecurring)
@@ -331,6 +359,13 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID strin
 				addClause("recurrence_rule_custom", *opts.RecurrenceRuleCustom)
 			}
 		}
+		_, err := tx.Exec(ctx, `
+			UPDATE email_reminders 
+			SET is_recurring = $3
+			WHERE user_id = $1 AND reminder_id = $2`, userID, id, *opts.IsRecurring)
+			if err != nil {
+				return nil, err
+			}
 		addClause("is_recurring", *opts.IsRecurring)
 	}
 	if opts.StartAt != nil {
@@ -341,21 +376,18 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID strin
 	}
 	if opts.EmailReminder != nil {
 		if *opts.EmailReminder {
-			_, err := pool.Exec(ctx, `
+			_, err := tx.Exec(ctx, `
 			INSERT INTO email_reminders (user_id, reminder_id, is_recurring)
 			VALUES ($1, $2, $3)`, userID, id, *opts.IsRecurring)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			commandTag, err := pool.Exec(ctx, `
+			_, err := tx.Exec(ctx, `
 			DELETE FROM email_reminders
 			WHERE reminder_id = $1 AND user_id = $2`, id, userID)
 			if err != nil {
 				return nil, err
-			}
-			if commandTag.RowsAffected() == 0 {
-				return nil, fmt.Errorf("Item with id %d not found. When trying to delete from email_reminders", id)
 			}
 		}
 		addClause("email_reminder", *opts.EmailReminder)
@@ -374,12 +406,16 @@ func UpdateItem(pool *pgxpool.Pool, id int, opts UpdateItemOptions, userID strin
 	args = append(args, id, userID)
 
 	var item models.Item
-	err := pool.QueryRow(ctx, query, args...).Scan(
+	err = tx.QueryRow(ctx, query, args...).Scan(
 		&item.ID, &item.FolderID, &item.Title, &item.Type, &item.Description, &item.Priority,
 		&item.Completed, &item.IsRecurring, &item.RecurrenceRule, &item.RecurrenceRuleCustom,
 		&item.StartAt, &item.EndAt, &item.EmailReminder, &item.CreatedAt, &item.UserID,
 	)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil{
 		return nil, err
 	}
 

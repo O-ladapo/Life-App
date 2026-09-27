@@ -6,6 +6,7 @@ import (
 	"life_app_api/internal/database"
 	"life_app_api/internal/handlers"
 	"log"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -60,7 +61,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	c := cron.New()
+	c := cron.New(cron.WithLocation(time.UTC))
 
 	c.AddFunc("0 0 * * *", func() {
 		err := handlers.SendDailyEmailReminders(pool, cfg)

@@ -64,6 +64,7 @@ func GetAllEmailRemindersByUserID(pool *pgxpool.Pool, userID string) (string, []
 		); err != nil {
 			return "", nil, err
 		}
+		defer rows.Close()
 
 		// Get specific reminder
 		var reminder models.Item
@@ -92,8 +93,9 @@ func GetAllEmailRemindersByUserID(pool *pgxpool.Pool, userID string) (string, []
 		if err != nil {
 			return "", nil, err
 		}
+		defer rows.Close()
 
-		dateStr := time.Now()
+		dateStr := time.Now().UTC()
 		currentDay := time.Date(dateStr.Year(), dateStr.Month(), dateStr.Day(), 0, 0, 0, 0, time.UTC)
 		startDay := time.Date(reminder.StartAt.Year(), reminder.StartAt.Month(), reminder.StartAt.Day(), 0, 0, 0, 0, time.UTC)
 
