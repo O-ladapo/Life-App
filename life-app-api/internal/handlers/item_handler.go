@@ -40,6 +40,12 @@ type UpdateItemInput struct {
 	EmailReminder        *bool      `json:"email_reminder"`
 }
 
+type Insights struct {
+    UpcomingTasks        int `json:"upcoming_tasks"`
+    UpcomingReminders    int `json:"upcoming_reminders"`
+    ActiveEmailReminders int `json:"active_email_reminders"`
+}
+
 func CreateItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDInterface, exists := c.Get("user_id")
@@ -290,5 +296,54 @@ func DeleteItemHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Item deleted successfully"})
+	}
+}
+
+func GetInsightsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
+		dateStr := c.Query("date")
+		if dateStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Date query parameter is required"})
+			return
+		}
+
+		date, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format, expected YYYY-MM-DD"})
+			return
+		}
+
+
+		upcomingTasks, err := repository.GetUpcomingItemsByDateAndType(pool, date, "task", userID)
+		if err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"Failed to get upcoming tasks": err.Error()})
+			return
+		}
+		upcomingReminders, err := repository.GetUpcomingItemsByDateAndType(pool, date, "reminder", userID)
+		if err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"Failed to get upcoming reminders": err.Error()})
+			return
+		}
+		_, activeEmailReminders, err := repository.GetAllEmailRemindersByUserID(pool, userID)
+		if err != nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"Failed to get upcoming email reminders": err.Error()})
+			return
+		}
+
+		insights := Insights{
+			UpcomingTasks: len(upcomingTasks),
+			UpcomingReminders: len(upcomingReminders),
+			ActiveEmailReminders: len(activeEmailReminders),
+		}
+
+		c.JSON(http.StatusOK, insights)
 	}
 }

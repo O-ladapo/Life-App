@@ -6,6 +6,7 @@ import { createItem } from '../../api/items';
 import { useItemsByDate } from './components/GetItems/GetItemsByDate';
 import task from '../assets/task.png'
 import reminder from '../assets/reminder.png'
+import { useGetInsights } from './components/GetItems/GetInsights';
 
 const currentDate = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -26,6 +27,11 @@ function Dashboard() {
     const [formType, setFormType] = useState<'task' | 'reminder'>('task');
     const todayStr = getLocalDateString(new Date());
     const { items, refetch: refetchItems, loading, error } = useItemsByDate(todayStr);
+    const { 
+        insights,
+        loading: insightsLoading, 
+        error: insightsError,
+    } = useGetInsights(todayStr);
 
 
     function openNewTaskForm() {
@@ -115,6 +121,13 @@ function Dashboard() {
             </div>
             <div className={styles.insights}>
                 <h1>Your Insights</h1>
+                {!insightsLoading && !insightsError && insights && (
+                    <>
+                        <h2>You Have {insights.upcoming_tasks} upcoming tasks</h2>
+                        <h2>You have {insights.upcoming_reminders} upcoming reminders</h2>  
+                        <h2>You have {insights.active_email_reminders} active email reminders</h2>
+                    </>
+                )}
             </div>
             {showForm && (
                 <NewTaskForm

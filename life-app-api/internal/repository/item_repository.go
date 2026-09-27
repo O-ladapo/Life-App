@@ -307,7 +307,7 @@ func GetUpcomingItemsByDateAndType(pool *pgxpool.Pool, date time.Time, itemType 
 		return nil, rows.Err()
 	}
 
-	// Gets all items whose start date is < current date, but their end date > current date
+	// Gets all tasks whose start date is < current date, but their end date > current date
 	rows, err = pool.Query(ctx, `
 		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
 		FROM items
@@ -315,8 +315,64 @@ func GetUpcomingItemsByDateAndType(pool *pgxpool.Pool, date time.Time, itemType 
 		AND start_at < $2
 		AND start_at IS NOT NULL
 		AND end_at >= $3
+		AND type = $4
+		AND end_at IS NOT NULL
 		AND folder_id IS NULL
-		ORDER BY start_at`, userID, date, upcomingStart)
+		ORDER BY start_at`, userID, date, upcomingStart, itemType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item models.Item
+
+		if err := rows.Scan(
+			&item.ID,
+			&item.FolderID,
+			&item.Title,
+			&item.Type,
+			&item.Description,
+			&item.Priority,
+			&item.Completed,
+			&item.IsRecurring,
+			&item.RecurrenceRule,
+			&item.RecurrenceRuleCustom,
+			&item.StartAt,
+			&item.EndAt,
+			&item.EmailReminder,
+			&item.CreatedAt,
+			&item.UserID,
+		); err != nil {
+			return nil, err
+		}
+
+		exists := false
+
+		for _, existingItem := range items{
+			if existingItem.ID == item.ID {
+				exists = true
+				break
+			}
+		}
+		if exists {
+			continue
+		}
+
+		items = append(items, item)
+	}
+
+	// Gets all items whose start date is <= current date, but they are recurring at future dates
+	rows, err = pool.Query(ctx, `
+		SELECT id, folder_id, title, type, description, priority, completed, is_recurring, recurrence_rule, recurrence_rule_custom, start_at, end_at, email_reminder, created_at, user_id
+		FROM items
+		WHERE user_id = $1
+		AND start_at <= $2
+		AND start_at IS NOT NULL
+		AND is_recurring = $3
+		AND type = $4
+		AND folder_id IS NULL
+		ORDER BY start_at`, userID, date, true, itemType)
 	if err != nil {
 		return nil, err
 	}

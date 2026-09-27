@@ -88,6 +88,7 @@ func main() {
 	protectedItem.GET("/:id", handlers.GetItemByIDHandler(pool))
 	protectedItem.GET("/by-date", handlers.GetItemsByDateHandler(pool))
 	protectedItem.GET("/by-upcoming-date", handlers.GetUpcomingItemsByDateAndTypeHandler(pool))
+	protectedItem.GET("/get-insights", handlers.GetInsightsHandler(pool))
 	protectedItem.PUT("/:id", handlers.UpdateItemHandler(pool))
 	protectedItem.DELETE("/:id", handlers.DeleteItemHandler(pool))
 
