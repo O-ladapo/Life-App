@@ -324,17 +324,17 @@ func GetInsightsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 		upcomingTasks, err := repository.GetUpcomingItemsByDateAndType(pool, date, "task", userID)
 		if err != nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"Failed to get upcoming tasks": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get upcoming tasks"})
 			return
 		}
 		upcomingReminders, err := repository.GetUpcomingItemsByDateAndType(pool, date, "reminder", userID)
 		if err != nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"Failed to get upcoming reminders": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get upcoming reminders"})
 			return
 		}
-		_, activeEmailReminders, err := repository.GetAllEmailRemindersByUserID(pool, userID)
+		activeEmailReminders, err := repository.GetAllActiveEmailReminders(pool, userID, date)
 		if err != nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"Failed to get upcoming email reminders": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get upcoming email reminders"})
 			return
 		}
 

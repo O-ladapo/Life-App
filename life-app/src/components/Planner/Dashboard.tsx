@@ -31,6 +31,7 @@ function Dashboard() {
         insights,
         loading: insightsLoading, 
         error: insightsError,
+        refetch: refetchInsights
     } = useGetInsights(todayStr);
 
 
@@ -73,6 +74,7 @@ function Dashboard() {
         if (createdItem.start_at?.slice(0, 10) === todayStr) {
             await refetchItems();
         }
+        await refetchInsights();
     }
 
     const tasks = items.filter((item) => item.type === 'task');
@@ -121,6 +123,7 @@ function Dashboard() {
             </div>
             <div className={styles.insights}>
                 <h1>Your Insights</h1>
+                {!insightsLoading && insightsError && <p className={styles.items_status}>{insightsError}</p>}
                 {!insightsLoading && !insightsError && insights && (
                     <>
                         <h2>You Have {insights.upcoming_tasks} upcoming tasks</h2>
