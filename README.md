@@ -43,7 +43,6 @@ Tech Stack:
 ### Calendar
 
 - Display reminders and tasks in the calendar
-- Search for tasks
 - Be able to change the calendar view (Weeks, Months, Years)
 
 
