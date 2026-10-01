@@ -1,20 +1,17 @@
-import infinityImg from '../assets/infinity.png'
 import styles from './Home.module.css'
+import HomeNavbar from '../Navbars/Home_navbar'
+import { Link } from 'react-router-dom';
+
 
 function Home() {
     return (
         <div className={styles.home_page}>
-            <div className={styles.left_section}>
-                <img src={infinityImg} width="221" height="134"/>
-                <h1>Life App by Oladapo</h1>
+            <HomeNavbar />
+            <div className={styles.content_card}>
+                <Link to='/planner' className={styles.planner_card}>
+                    <h1>Planner</h1>
+                </Link>
             </div>
-            <div className={styles.right_section}>
-                <div className={styles.right_content}>
-                      <h2>Home Page</h2>
-                </div>
-            </div>
-        
-          
         </div>
     )
 }

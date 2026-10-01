@@ -1,0 +1,355 @@
+:root{
+    --accent: #4B4B4B;
+}
+
+.TaskManagement {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.task_layout {
+    width: min(1600px, calc(100% - 60px));
+    margin: 80px auto 0;
+}
+
+.card {
+    position: relative;
+    width: 100%;
+    min-height: 680px;
+    border-radius: 20px;
+    background-color: #1E1E1E;
+    display: flex;
+    flex-direction: column;
+    justify-content: left; 
+    align-items: center;
+}
+
+.left_section {
+    position: absolute;
+    top: 36px;
+    bottom: 36px;
+    left: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-width: calc(25% - 72px);
+    box-sizing: border-box;
+}
+
+.left_section_buttons {
+    position: static;
+    background: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.add_task_row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 0;
+}
+
+.add_task_row h2 {
+    color: white;
+    font-size: 24px;
+    font-weight: normal;
+    margin: 0;
+}
+
+.today_button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    margin-top: 25px;
+    margin-left: 63px;
+}
+
+.today_button h2 {
+    color: white;
+    font-size: 24px;
+    font-weight: normal;
+    margin: 0;
+}
+
+.upcoming_button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    margin-top: 40px;
+    margin-left: 63px;
+}
+
+.upcoming_button h2 {
+    color: white;
+    font-size: 24px;
+    font-weight: normal;
+    margin: 0;
+}
+
+.display_folder_row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
+    margin-top: 60px;
+}
+
+.display_folder_row h2 {
+    color: white;
+    font-size: 24px;
+    font-weight: normal;
+    margin: 0;
+}
+
+.folder_list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 25px;
+    margin-top: 8px;
+    margin-left: 62px;
+}
+
+.folder_item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    font-size: 24px;
+    font-weight: normal;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+.folder_bullet {
+    color: white;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.add_folder_row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
+    margin-top: 60px;
+}
+
+.add_folder_row h2 {
+    color: white;
+    font-size: 24px;
+    font-weight: normal;
+    margin: 0;
+}
+
+.right_section{
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 75%;
+    border-radius: 20px;
+    background-color: #2D2D2D;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding-top: 24px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.right_section_header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.right_section_title {
+    margin: 0;
+    color: white;
+    font-size: 42px;
+    font-weight: normal;
+    text-transform: capitalize;
+}
+
+.folder_section_header {
+    position: relative;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 50px;
+    padding-right: 50px;
+    box-sizing: border-box;
+}
+
+.folder_add_task_button {
+    position: static;
+    padding: 15px 20px;
+    color: white;
+    background: transparent;
+    border: 1px solid #6B6B6B;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.folder_add_task_button:hover {
+    background-color: var(--accent);
+}
+
+.folder_header_actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-left: auto;
+}
+
+.line{
+    width: 1100px;
+    height: 2px;
+    background-color: #474747;
+    margin-top: 40px;
+    border-radius: 999px;
+    display: block;
+}
+
+.items_status {
+    align-self: flex-start;
+    margin-top: 18px;
+    color: #bdbdbd;
+    font-size: 18px;
+}
+
+.task_item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    max-width: 1110px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    text-align: left;
+    margin-top: 18px;
+}
+
+.task_checkbox {
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    border: 1px solid #000000;
+    background: transparent;
+    display: inline-block;
+    position: relative;
+    flex-shrink: 0;
+    cursor: pointer;
+    margin-top: 2px;
+}
+
+.task_checkbox:checked {
+    background-color: green;
+    border-color: green;
+}
+
+.task_content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    height: 30px;
+}
+
+.task_title_row {
+    display: flex;
+    align-items: center;
+    align-self: flex-start;
+}
+
+.priority_icon {
+    width: 25px;
+    height: 25px;
+    object-fit: contain;
+    flex-shrink: 0;
+    margin-left: 6px;
+    margin-top: 2px;
+}
+
+.task_text {
+    font-size: 24px;
+}
+
+.task_actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-left: auto;
+    align-self: flex-start;
+}
+
+.task_action_button {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transform: translate(-40px, 45px);
+}
+
+.task_action_button img {
+    width: 40px;
+    height: 40px;
+}
+
+.task_time {
+    position: absolute;
+    left: 0;
+    display: flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 6px;
+    top: 32px;
+    font-size: 20px;
+}
+
+.task_time img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.task_line{
+    width: 100%;
+    flex-basis: 100%;
+    height: 2px;
+    background-color: #474747;
+    margin-top: 48px;
+    border-radius: 999px;
+    display: block;
+}

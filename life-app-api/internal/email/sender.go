@@ -9,7 +9,7 @@ import (
 
 func SendEmail(apiKey, toEmail, subject, htmlBody string) error {
 	body := map[string]string{
-		"from":    "onboarding@resend.dev",
+		"from":    "noreply@oladapo-lifeapp.site",
 		"to":      toEmail,
 		"subject": subject,
 		"html":    htmlBody,

@@ -1,7 +1,7 @@
 # Life-App
 Creating a general life app designed to include features that I use in my day-to-day life.
 Main features so far: Planner, (*Planned: Budget Calculator, Fitness Tracker.*)
-🔗 **Live demo:** [life-app-blue-five.vercel.app](https://life-app-blue-five.vercel.app)
+🔗 **Live demo:** [oladapo-lifeapp.site](https://www.oladapo-lifeapp.site/)
 Tech Stack: 
 - Frontend: React + Typescript + Vite
 - Backend: Golang, Gin
@@ -43,7 +43,6 @@ Tech Stack:
 ### Calendar
 
 - Display reminders and tasks in the calendar
-- Search for tasks
 - Be able to change the calendar view (Weeks, Months, Years)
 
 

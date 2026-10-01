@@ -84,6 +84,22 @@ func GetUserByID(pool *pgxpool.Pool, id string) (*models.User, error) {
 	return &user, nil
 }
 
+func GetEmailByID(pool *pgxpool.Pool, id string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var email string
+	err := pool.QueryRow(ctx, `
+	SELECT email
+	FROM users
+	WHERE id = $1`, id).Scan(&email)
+	if err != nil {
+		return "", err
+	}
+
+	return email, nil
+}
+
 func DeleteUser(pool *pgxpool.Pool, id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
