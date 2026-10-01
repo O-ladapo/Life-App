@@ -72,9 +72,9 @@ function Dashboard() {
         const createdItem = await createItem(payload);
 
         if (createdItem.start_at?.slice(0, 10) === todayStr) {
-            await refetchItems();
+            await refetchItems().catch(() => undefined);
         }
-        await refetchInsights();
+        await refetchInsights().catch(() => undefined);
     }
 
     const tasks = items.filter((item) => item.type === 'task');

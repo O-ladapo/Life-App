@@ -35,7 +35,15 @@ function startOfWeek(date: Date): Date {
 }
 
 function dayNumber(date: Date): number {
-    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000;
+    return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) / 86400000;
+}
+
+function normaliseVisibleDate(date: Date): Date {
+    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
+
+function normaliseTimestampDate(date: Date): Date {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
 function formatCalendarTime(startAt: string | null): string | null {
@@ -54,8 +62,9 @@ function formatCalendarTime(startAt: string | null): string | null {
 function itemOccursOnDate(item: Item, date: Date): boolean {
     if (!item.start_at) return false;
 
-    const startDate = new Date(item.start_at);
-    const dayOffset = dayNumber(date) - dayNumber(startDate);
+    const calendarDate = normaliseVisibleDate(date);
+    const startDate = normaliseTimestampDate(new Date(item.start_at));
+    const dayOffset = dayNumber(calendarDate) - dayNumber(startDate);
     if (dayOffset < 0) return false;
 
     if (item.is_recurring && item.recurrence_rule) {
@@ -63,20 +72,21 @@ function itemOccursOnDate(item: Item, date: Date): boolean {
             case 'daily':
                 return true;
             case 'weekly':
-                return date.getDay() === startDate.getDay();
+                return calendarDate.getUTCDay() === startDate.getUTCDay();
             case 'monthly': {
-                const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-                return date.getDate() === Math.min(startDate.getDate(), lastDay);
+                const lastDay = new Date(Date.UTC(calendarDate.getUTCFullYear(), calendarDate.getUTCMonth() + 1, 0)).getUTCDate();
+                return calendarDate.getUTCDate() === Math.min(startDate.getUTCDate(), lastDay);
             }
             case 'yearly':
-                return date.getMonth() === startDate.getMonth() && date.getDate() === startDate.getDate();
+                return calendarDate.getUTCMonth() === startDate.getUTCMonth()
+                    && calendarDate.getUTCDate() === startDate.getUTCDate();
             case 'custom':
                 return Boolean(item.recurrence_rule_custom && dayOffset % item.recurrence_rule_custom === 0);
         }
     }
 
     if (!item.end_at) return dayOffset === 0;
-    return dayNumber(date) <= dayNumber(new Date(item.end_at));
+    return dayNumber(calendarDate) <= dayNumber(normaliseTimestampDate(new Date(item.end_at)));
 }
 
 function Calendar () {
@@ -139,8 +149,17 @@ function Calendar () {
     function changePeriod(direction: -1 | 1) {
         setSelectedDate((currentDate) => {
             const nextDate = new Date(currentDate);
-            if (view === 'month') nextDate.setMonth(nextDate.getMonth() + direction);
-            else if (view === 'week') nextDate.setDate(nextDate.getDate() + direction * 7);
+            if (view === 'month') {
+                const selectedDay = nextDate.getDate();
+                nextDate.setDate(1);
+                nextDate.setMonth(nextDate.getMonth() + direction);
+                const lastDayOfTargetMonth = new Date(
+                    nextDate.getFullYear(),
+                    nextDate.getMonth() + 1,
+                    0,
+                ).getDate();
+                nextDate.setDate(Math.min(selectedDay, lastDayOfTargetMonth));
+            } else if (view === 'week') nextDate.setDate(nextDate.getDate() + direction * 7);
             else nextDate.setDate(nextDate.getDate() + direction);
             return nextDate;
         });
