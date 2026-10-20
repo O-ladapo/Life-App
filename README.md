@@ -32,8 +32,6 @@ Tech Stack:
 - View upcoming and completed tasks
 - Organise tasks by categories
 - Be able to track progress of tasks
-- Sort tasks. (progress, priority, due date)
-- Search tasks
 
 ### Reminders
 - Add/Edit/Update/Delete reminders
@@ -41,10 +39,5 @@ Tech Stack:
 - Email/Notifications for reminders
 
 ### Calendar
-
 - Display reminders and tasks in the calendar
 - Be able to change the calendar view (Weeks, Months, Years)
-
-
-
-
